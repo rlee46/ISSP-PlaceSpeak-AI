@@ -1,42 +1,64 @@
 <!-- form_results.html -->
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>AI Report</title>
-   
+
     <link rel="stylesheet" href="/static/styles.css">
     <!-- Add CSS styles here -->
 </head>
+
 <body>
-    <h1>AI Report</h1>
-    <table>
-        <!-- Table headers -->
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Generation Date</th>
-                <th>Title</th>
-                <th>Key Phrases</th>
-                <th>Sentiment</th>
-                <th>Confidence Score</th>
-                <th>Emotion Detection</th>
-            </tr>
-        </thead>
-        <tbody>
-            <!-- Dynamically create table rows for each entry -->
-            {% for entry in entries %}
-            <tr>
-                <td>{{ entry.id }}</td>
-                <td>{{ entry.generation_date }}</td>
-                <td>{{ entry.title }}</td>
-                <td>{{ entry.key_phrases }}</td>
-                <td>{{ entry.sentiment }}</td>
-                <td>{{ entry.confidence_score }}</td>
-                <td>{{ entry.emotion_detection }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <header>
+        <div id="logo-container">
+            <p id="logo"><span style="color: #CEDD4D;">Place</span><span style="color: #20A4BA;">Speak</span></p>
+        </div>
+
+    </header>
+    <div id="flex-container">
+        <nav>
+            <ul>
+                <li><a href="" class="nav-items">Dashboard</a></li>
+                <li><a href="" class="nav-items">Charts</a></li>
+            </ul>
+        </nav>
+        <main id="result-container">
+            <h1>Results</h1>
+            <table>
+                <!-- Table headers -->
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Generation Date</th>
+                        <th>Title</th>
+                        <th>Key Phrases</th>
+                        <th>Sentiment</th>
+                        <th>Confidence Score</th>
+                        <th>Emotion Detection</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Dynamically create table rows for each entry -->
+                    {% for entry in entries %}
+                    <tr>
+                        <td>{{ entry.id }}</td>
+                        <td>{{ entry.generation_date }}</td>
+                        <td>{{ entry.title }}</td>
+                        <td>{{ entry.key_phrases }}</td>
+                        <td>{{ entry.sentiment }}</td>
+                        <td>{{ entry.confidence_score }}</td>
+                        <td>{{ entry.emotion_detection }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </main>
+
+    </div>
+
+
 </body>
+
 </html>
