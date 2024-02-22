@@ -1,64 +1,70 @@
 <!-- form_results.html -->
 <!DOCTYPE html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
+  <head>
+    <meta charset="UTF-8" />
     <title>AI Report</title>
-
-    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="stylesheet" href="/static/styles.css" />
     <!-- Add CSS styles here -->
-</head>
+  </head>
 
-<body>
+  <body>
     <header>
-        <div id="logo-container">
-            <p id="logo"><span style="color: #CEDD4D;">Place</span><span style="color: #20A4BA;">Speak</span></p>
-        </div>
-
+      <div id="logo-container">
+        <p id="logo">
+          <span style="color: #cedd4d">Place</span
+          ><span style="color: #20a4ba">Speak</span>
+        </p>
+      </div>
     </header>
     <div id="flex-container">
-        <nav>
-            <ul>
-                <li><a href="" class="nav-items">Dashboard</a></li>
-                <li><a href="" class="nav-items">Charts</a></li>
-            </ul>
-        </nav>
-        <main id="result-container">
-            <h1>Results</h1>
-            <table>
-                <!-- Table headers -->
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Generation Date</th>
-                        <th>Title</th>
-                        <th>Key Phrases</th>
-                        <th>Sentiment</th>
-                        <th>Confidence Score</th>
-                        <th>Emotion Detection</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- Dynamically create table rows for each entry -->
-                    {% for entry in entries %}
-                    <tr>
-                        <td>{{ entry.id }}</td>
-                        <td>{{ entry.generation_date }}</td>
-                        <td>{{ entry.title }}</td>
-                        <td>{{ entry.key_phrases }}</td>
-                        <td>{{ entry.sentiment }}</td>
-                        <td>{{ entry.confidence_score }}</td>
-                        <td>{{ entry.emotion_detection }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </main>
-
+      <nav>
+        <ul>
+          <li><a href="" class="nav-items">Dashboard</a></li>
+          <li><a href="" class="nav-items">Charts</a></li>
+        </ul>
+      </nav>
+      <main id="result-container">
+        <h1>Results</h1>
+        <a href="{% url 'download_data' %}" class="btn btn-primary"
+          >Download Data</a
+        >
+        <form
+          action="{% url 'send_csv_to_api' %}"
+          method="post"
+          enctype="multipart/form-data"
+        >
+          {% csrf_token %}
+          <input type="file" name="text_file" required />
+          <button type="submit">Upload and Analyze CSV</button>
+        </form>
+        <table>
+          <!-- Table headers -->
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Key Phrases</th>
+              <th>Sentiment</th>
+              <th>Confidence Score</th>
+              <th>Emotion Detection</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Dynamically create table rows for each entry -->
+            {% if entries %} {% for entry in entries %}
+            <tr>
+              <td>{{ entry.ID }}</td>
+              <td>{{ entry.KeyPhrases }}</td>
+              <td>{{ entry.Sentiment }}</td>
+              <td>{{ entry.ConfidenceScore }}</td>
+              <td>{{ entry.ReactionEmotion }}</td>
+            </tr>
+            {% endfor %} {% else %}
+            <!-- You can place a message here or leave it empty if you only want to show the header -->
+            {% endif %}
+          </tbody>
+        </table>
+      </main>
     </div>
-
-
-</body>
-
+  </body>
 </html>
