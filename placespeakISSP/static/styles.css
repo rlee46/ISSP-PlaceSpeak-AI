@@ -95,3 +95,9 @@ td {
   text-align: center;
   width: 10%;
 }
+
+/* Button styles */
+
+#download-btn{
+    float: right;
+}

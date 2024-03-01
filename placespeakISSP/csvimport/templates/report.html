@@ -4,8 +4,11 @@
   <head>
     <meta charset="UTF-8" />
     <title>AI Report</title>
+    <!-- bootstrap link-->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
     <link rel="stylesheet" href="/static/styles.css" />
-    <!-- Add CSS styles here -->
+    <!-- icons -->
+    <script src="https://kit.fontawesome.com/d08114a007.js" crossorigin="anonymous"></script>
   </head>
 
   <body>
@@ -26,17 +29,21 @@
       </nav>
       <main id="result-container">
         <h1>Results</h1>
-        <a href="{% url 'download_data' %}" class="btn btn-primary"
-          >Download Data</a
-        >
-        <form
+                <form
           action="{% url 'send_csv_to_api' %}"
           method="post"
           enctype="multipart/form-data"
         >
           {% csrf_token %}
-          <input type="file" name="csv_file" required />
-          <button type="submit">Upload and Analyze CSV</button>
+            <div>
+                <input type="file" name="csv_file" required />
+                <button type="submit" class="btn btn-primary">Upload and Analyze CSV</button>
+            
+                <a href="{% url 'download_data' %}" class="btn btn-primary float-end" id="download-btn">
+                    <i class="fa-solid fa-file-arrow-down"></i>
+                </a>
+            </div>
+        
         </form>
         <table>
           <!-- Table headers -->

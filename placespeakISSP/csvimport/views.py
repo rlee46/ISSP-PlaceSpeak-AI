@@ -19,7 +19,7 @@ def remove_non_printable_chars(text):
 
 @csrf_exempt  # Temporarily disable CSRF for this view to simplify the example
 def send_csv_to_api(request):
-    standard_query = """"Generate the result in csv format without any explaination. For each response,
+    standard_query = """"Generate the result in csv format without any explaination. Do not include a header for the data. For each response,
                     column 1:Report id
                     column 2:Give me key words
                     column 3:Generate a sentimental analysis of the response from positive, neutral, or negative
@@ -67,7 +67,7 @@ def send_csv_to_api(request):
                     'ReactionEmotion': parts[4].strip(),
                 }
                 entries.append(entry)
-            #print(entries)
+            print(entries)
             request.session['api_response'] = entries
             return redirect('home')
         else:
