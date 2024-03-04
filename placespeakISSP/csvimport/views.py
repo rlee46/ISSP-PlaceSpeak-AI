@@ -51,6 +51,8 @@ def send_csv_to_api(request):
 
         # Send the request to the OpenAI API
         response = requests.post(api_url, headers=headers, json=data)
+    
+
         if response.status_code == 200:
             response_data = response.json()
         
@@ -67,7 +69,23 @@ def send_csv_to_api(request):
                     'ReactionEmotion': parts[4].strip(),
                 }
                 entries.append(entry)
-            print(entries)
+            summary_data = {
+            "model": "gpt-3.5-turbo",
+            "messages": [
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": "Summarize the data above and genearate a short report."}
+            ],
+            "max_tokens": 4096,
+            }
+            summary = requests.post(api_url,headers=headers, json=summary_data)
+            if summary.status_code == 200:
+                summary_data = summary.json()
+                summary_result = summary_data.get("choices")[0].get("message").get("content")
+                print(summary_result)
+
+
+
+
             request.session['api_response'] = entries
             return redirect('home')
         else:
