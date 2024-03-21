@@ -22,10 +22,10 @@ def send_csv_to_api(request):
     standard_query = """"Generate the result in csv format without any explaination. Do not include a header for the data. For each response,
                     column 1:Report id
                     column 2:Give me key words
-                    column 3:Generate a sentimental analysis of the response from positive, neutral, or negative
-                    column 4:Generate a confidence score in a percentage
-                    column 5:Determine the reaction/emotion
-                    Format the data as "ID, Key Words, Sentiment, Confidence Score, Reaction/Emotion
+                    column 3:Generate a sentiment analysis of the response from positive, neutral, or negative
+                    column 4:Determine the reaction/emotion
+                    column 5:Generate a confidence score in a percentage 
+                    Format the data as "ID, Key Words, Sentiment, Reaction/Emotion, Confidence Score
                     """
     if request.method == 'POST' and 'csv_file' in request.FILES:
         csv_file = request.FILES['csv_file']
@@ -65,15 +65,17 @@ def send_csv_to_api(request):
                     'ID': parts[0].strip(),
                     'KeyPhrases': parts[1].strip(),
                     'Sentiment': parts[2].strip(),
-                    'ConfidenceScore': parts[3].strip(),
-                    'ReactionEmotion': parts[4].strip(),
+                    'ReactionEmotion': parts[3].strip(),
+                    'ConfidenceScore': parts[4].strip(),
                 }
                 entries.append(entry)
+            
+            summary_query = "Summarize the following data and genearate a 5 to 10 sentence summary. Do not format it in markdown, only use plain text. " + csv_data
             summary_data = {
             "model": "gpt-3.5-turbo",
             "messages": [
                 {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": "Summarize the data above and genearate a short report."}
+                {"role": "user", "content": summary_query}
             ],
             "max_tokens": 4096,
             }
@@ -81,12 +83,12 @@ def send_csv_to_api(request):
             if summary.status_code == 200:
                 summary_data = summary.json()
                 summary_result = summary_data.get("choices")[0].get("message").get("content")
-                print(summary_result)
+                #print(summary_result)
 
 
 
 
-            request.session['api_response'] = entries
+            request.session['api_response'] = [entries, summary_result]
             return redirect('home')
         else:
             return JsonResponse({'error': response.text}, status=response.status_code)
@@ -122,11 +124,14 @@ def download_data(request):
 def home(request):
     # Fetch actual data from the API or other sources here
     api_response = request.session.get('api_response', None)
-    # print(api_response)
+        # print(api_response)
     if api_response:
-        entries = api_response
+        entries = api_response[0]
+        summary = api_response[1]
         # Convert the string response to JSON
         #del request.session['api_response']
     else:
         entries = None
-    return render(request, 'report.html', {'entries': entries})
+        summary = None
+    print(summary)
+    return render(request, 'report.html', {'entries': entries, 'summary':summary})
