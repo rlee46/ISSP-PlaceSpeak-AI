@@ -43,7 +43,7 @@
           {% csrf_token %}
             <div>
                 <input type="file" name="csv_file" required />
-                <button type="submit" class="btn btn-primary">Upload and Analyze CSV</button>
+                <button type="submit" class="btn btn-primary">Upload and Analyze text/csv</button>
             
                 <a href="{% url 'download_data' %}" class="btn btn-primary float-end" id="download-btn">
                     <i class="fa-solid fa-file-arrow-down"></i>
