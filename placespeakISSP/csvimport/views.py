@@ -20,12 +20,12 @@ def remove_non_printable_chars(text):
 @csrf_exempt  # Temporarily disable CSRF for this view to simplify the example
 def send_csv_to_api(request):
     standard_query = """"Generate the result in csv format without any explaination. Do not include a header for the data. For each response,
-                    column 1:Report id
-                    column 2:Give me key words
-                    column 3:Generate a sentiment analysis of the response from positive, neutral, or negative
-                    column 4:Determine the reaction/emotion
-                    column 5:Generate a confidence score in a percentage 
-                    Format the data as "ID, Key Words, Sentiment, Reaction/Emotion, Confidence Score
+                    column 1:Select one key word from the response
+                    column 2:Evaluate the sentiment of the response from positive, neutral, or negative
+                    column 3:Determine the reaction/emotion
+                    column 4:Generate a confidence score in a percentage  
+                    Format the data as Key Words, Sentiment, Reaction/Emotion, Confidence Score
+                    Here is an example: `Freedom, Positive, Happy, 100%`
                     """
     if request.method == 'POST' and 'csv_file' in request.FILES:
         csv_file = request.FILES['csv_file']
@@ -66,11 +66,10 @@ def send_csv_to_api(request):
                     # Create a dictionary for each line and append to entries
                     try:
                         entry = {
-                            'ID': parts[0].strip(),
-                            'KeyPhrases': parts[1].strip(),
-                            'Sentiment': parts[2].strip(),
-                            'ReactionEmotion': parts[3].strip(),
-                            'ConfidenceScore': parts[4].strip(),
+                            'KeyPhrases': parts[0].strip(),
+                            'Sentiment': parts[1].strip(),
+                            'ReactionEmotion': parts[2].strip(),
+                            'ConfidenceScore': parts[3].strip(),
                         }
                         entries.append(entry)
                     except:
@@ -80,7 +79,7 @@ def send_csv_to_api(request):
 
                 if not(test_confidence_scores(entries) or test_sentiment(entries)):
                     print('bad return')
-                    # continue
+                    continue
                 else:
                     successful_query = True
                 
@@ -121,13 +120,12 @@ def download_data(request):
     response['Content-Disposition'] = 'attachment; filename="sentiment_analysis_data_{}.csv"'.format(datetime.now().strftime("%Y%m%d_%H%M%S"))
    # response['Content-Disposition'] = 'attachment; filename="sentiment_analysis_data.csv"'
     writer = csv.writer(response)
-    writer.writerow(['ID','KeyPhrases', 'Sentiment', 'ConfidenceScore', 'ReactionEmotion'])
+    writer.writerow(['KeyPhrases', 'Sentiment', 'ConfidenceScore', 'ReactionEmotion'])
 
     entries = request.session.get('api_response',None)
     if entries:  # Check if entries is not None or empty
         for entry in entries:
             writer.writerow([
-                entry.get('ID', ''),
                 entry.get('KeyPhrases', ''),
                 entry.get('Sentiment', ''),
                 entry.get('ConfidenceScore', ''),
@@ -156,16 +154,23 @@ def home(request):
 def test_confidence_scores(data):
     for entry in data:
         try:
-            a = int(entry['ConfidenceScore'])
+            a = int((entry['ConfidenceScore'].replace('%', '')))
         except:
+            print('type error')
             return False
         
         if not(a >=0 or a <= 100):
+            print('bad value')
             return False
+        
+    return True
         
 
 def test_sentiment(data):
     sentiments = ['positive', 'neutral', 'negative']
     for entry in data:
         if not str(entry['Sentiment']).lower() in sentiments:
+            print('sent')
             return False
+        
+    return True

@@ -55,7 +55,6 @@
           <!-- Table headers -->
           <thead>
             <tr>
-              <th>ID</th>
               <th>Key Phrases</th>
               <th>Sentiment
                 <button type="button" class="btn btn-sm btn-outline-secondary"
@@ -78,7 +77,6 @@
             {% endif %}
             {% if entries %} {% for entry in entries %}
             <tr>
-              <td>{{ entry.ID }}</td>
               <td>{{ entry.KeyPhrases }}</td>
               <td>{{ entry.Sentiment }}</td>
               <td>{{ entry.ReactionEmotion }}</td>
