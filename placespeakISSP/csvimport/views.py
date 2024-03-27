@@ -70,7 +70,12 @@ def send_csv_to_api(request):
                 }
                 entries.append(entry)
             
-            summary_query = "Summarize the following data and genearate a 5 to 10 sentence summary. Do not format it in markdown, only use plain text. " + csv_data
+            summary_query = '''I am a government  official who is looking to make a decision based on the input of my community. 
+            The following data is sourced from a discussion post where members of my community discussed their views on the topic.
+            Please generate a 5 to 10 sentence summary that I can use to communicate their feelings to my colleagues and other policy makers.
+            In three sentences or less, please provide a recommendation for how I should proceed based on the feedback observed in this post.   
+            Do not format it in markdown, only use plain text.
+            ''' + csv_data
             summary_data = {
             "model": "gpt-3.5-turbo",
             "messages": [
@@ -97,7 +102,6 @@ def send_csv_to_api(request):
     
 def download_data(request):
     # Create the HttpResponse object with the appropriate CSV header.
-    print("Download data view was called")
     response = HttpResponse(content_type='text/csv  ; charset=utf-8')
     response['Content-Disposition'] = 'attachment; filename="sentiment_analysis_data_{}.csv"'.format(datetime.now().strftime("%Y%m%d_%H%M%S"))
    # response['Content-Disposition'] = 'attachment; filename="sentiment_analysis_data.csv"'
@@ -124,7 +128,6 @@ def download_data(request):
 def home(request):
     # Fetch actual data from the API or other sources here
     api_response = request.session.get('api_response', None)
-        # print(api_response)
     if api_response:
         entries = api_response[0]
         summary = api_response[1]
@@ -133,5 +136,4 @@ def home(request):
     else:
         entries = None
         summary = None
-    print(summary)
     return render(request, 'report.html', {'entries': entries, 'summary':summary})
