@@ -49,54 +49,69 @@ def send_csv_to_api(request):
             "max_tokens": 4096,
         }
 
+        successful_query = False
+        while not successful_query:
+
         # Send the request to the OpenAI API
-        response = requests.post(api_url, headers=headers, json=data)
-    
-
-        if response.status_code == 200:
-            response_data = response.json()
+            response = requests.post(api_url, headers=headers, json=data)
         
-            result = response_data.get("choices")[0].get("message").get("content")
-            entries = []
-            for line in result.strip().split("\n"):
-                parts = line.split(',')
-                # Create a dictionary for each line and append to entries
-                entry = {
-                    'ID': parts[0].strip(),
-                    'KeyPhrases': parts[1].strip(),
-                    'Sentiment': parts[2].strip(),
-                    'ReactionEmotion': parts[3].strip(),
-                    'ConfidenceScore': parts[4].strip(),
-                }
-                entries.append(entry)
+
+            if response.status_code == 200:
+                response_data = response.json()
             
-            summary_query = '''I am a government  official who is looking to make a decision based on the input of my community. 
-            The following data is sourced from a discussion post where members of my community discussed their views on the topic.
-            Please generate a 5 to 10 sentence summary that I can use to communicate their feelings to my colleagues and other policy makers.
-            In three sentences or less, please provide a recommendation for how I should proceed based on the feedback observed in this post.   
-            Do not format it in markdown, only use plain text.
-            ''' + csv_data
-            summary_data = {
-            "model": "gpt-3.5-turbo",
-            "messages": [
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": summary_query}
-            ],
-            "max_tokens": 4096,
-            }
-            summary = requests.post(api_url,headers=headers, json=summary_data)
-            if summary.status_code == 200:
-                summary_data = summary.json()
-                summary_result = summary_data.get("choices")[0].get("message").get("content")
-                #print(summary_result)
+                result = response_data.get("choices")[0].get("message").get("content")
+                entries = []
+                for line in result.strip().split("\n"):
+                    parts = line.split(',')
+                    # Create a dictionary for each line and append to entries
+                    try:
+                        entry = {
+                            'ID': parts[0].strip(),
+                            'KeyPhrases': parts[1].strip(),
+                            'Sentiment': parts[2].strip(),
+                            'ReactionEmotion': parts[3].strip(),
+                            'ConfidenceScore': parts[4].strip(),
+                        }
+                        entries.append(entry)
+                    except:
+                        break
 
 
 
+                if not(test_confidence_scores(entries) or test_sentiment(entries)):
+                    print('bad return')
+                    # continue
+                else:
+                    successful_query = True
+                
+                summary_query = '''I am a government  official who is looking to make a decision based on the input of my community. 
+                The following data is sourced from a discussion post where members of my community discussed their views on the topic.
+                Please generate a 5 to 10 sentence summary that I can use to communicate their feelings to my colleagues and other policy makers.
+                In three sentences or less, please provide a recommendation for how I should proceed based on the feedback observed in this post.   
+                Do not format it in markdown, only use plain text.
+                ''' + csv_data
+                summary_data = {
+                "model": "gpt-3.5-turbo",
+                "messages": [
+                    {"role": "system", "content": "You are a helpful assistant."},
+                    {"role": "user", "content": summary_query}
+                ],
+                "max_tokens": 4096,
+                }
+                summary = requests.post(api_url,headers=headers, json=summary_data)
+                if summary.status_code == 200:
+                    summary_data = summary.json()
+                    summary_result = summary_data.get("choices")[0].get("message").get("content")
+                    #print(summary_result)
+                else:
+                    return JsonResponse({'error': response.text}, status=response.status_code)
 
-            request.session['api_response'] = [entries, summary_result]
-            return redirect('home')
-        else:
-            return JsonResponse({'error': response.text}, status=response.status_code)
+
+
+                request.session['api_response'] = [entries, summary_result]
+                return redirect('home')
+            else:
+                return JsonResponse({'error': response.text}, status=response.status_code)
 
     return JsonResponse({'error': 'Invalid request'}, status=400)
     
@@ -137,3 +152,20 @@ def home(request):
         entries = None
         summary = None
     return render(request, 'report.html', {'entries': entries, 'summary':summary})
+
+def test_confidence_scores(data):
+    for entry in data:
+        try:
+            a = int(entry['ConfidenceScore'])
+        except:
+            return False
+        
+        if not(a >=0 or a <= 100):
+            return False
+        
+
+def test_sentiment(data):
+    sentiments = ['positive', 'neutral', 'negative']
+    for entry in data:
+        if not str(entry['Sentiment']).lower() in sentiments:
+            return False
