@@ -9,6 +9,7 @@ import requests
 import csv
 import re
 import json
+import time
 
 def remove_non_printable_chars(text):
     # Define the pattern to match only printable characters
@@ -20,12 +21,12 @@ def remove_non_printable_chars(text):
 @csrf_exempt  # Temporarily disable CSRF for this view to simplify the example
 def send_csv_to_api(request):
     standard_query = """"Generate the result in csv format without any explaination. Do not include a header for the data. For each response,
-                    column 1:Select one key word from the response
+                    column 1:Select one or more key words from the response. If there is more than one key word, seperate them with `&` not commas
                     column 2:Evaluate the sentiment of the response from positive, neutral, or negative
                     column 3:Determine the reaction/emotion
                     column 4:Generate a confidence score in a percentage  
                     Format the data as Key Words, Sentiment, Reaction/Emotion, Confidence Score
-                    Here is an example: `Freedom, Positive, Happy, 100%`
+                    Here is an example: `Freedom & Responsibility, Positive, Happy, 100%`
                     """
     if request.method == 'POST' and 'csv_file' in request.FILES:
         csv_file = request.FILES['csv_file']
@@ -78,7 +79,9 @@ def send_csv_to_api(request):
 
 
                 if not(test_confidence_scores(entries) or test_sentiment(entries)):
-                    print('bad return')
+                    print(entries)
+                    print(result)
+                    time.sleep(5)
                     continue
                 else:
                     successful_query = True
@@ -151,10 +154,12 @@ def home(request):
         summary = None
     return render(request, 'report.html', {'entries': entries, 'summary':summary})
 
+
+
 def test_confidence_scores(data):
     for entry in data:
         try:
-            a = int((entry['ConfidenceScore'].replace('%', '')))
+            a = int((entry['ConfidenceScore'].replace('%-', '')))
         except:
             print('type error')
             return False
@@ -170,7 +175,7 @@ def test_sentiment(data):
     sentiments = ['positive', 'neutral', 'negative']
     for entry in data:
         if not str(entry['Sentiment']).lower() in sentiments:
-            print('sent')
+            print('sentiment')
             return False
         
     return True

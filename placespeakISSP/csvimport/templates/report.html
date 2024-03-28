@@ -70,6 +70,9 @@
           </thead>
           <tbody>
             <!-- Dynamically create table rows for each entry -->
+            {% if error %}
+            <h3> An error occured in the analysis process, please wait while we try again.</h3>
+            {% endif %}
             {% if summary %}
             <h2> Summary </h2>
             <p>{{ summary }}</p>
