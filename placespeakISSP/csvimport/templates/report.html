@@ -27,7 +27,7 @@
       </div>
     </header>
     <div id="flex-container">
-      <nav>
+      <nav id="side-bar">
         <ul>
           <li><a href="" class="nav-items">Dashboard</a></li>
           <li><a href="" class="nav-items">Charts</a></li>
@@ -78,7 +78,14 @@
             <h2> Summary </h2>
             <p>{{ summary }}</p>
             {% else %}
+            
+        
             {% endif %}
+            <!-- Add canvas element for chart -->
+            <div class="charts">
+                <div class="chart"><canvas id="confidenceChart" width="400" height="200"></canvas></div>
+                <div class="chart"><canvas id="sentimentChart" width="400" height="200"></canvas></div>
+            </div>
             {% if entries %} {% for entry in entries %}
             <tr>
               <td>{{ entry.KeyPhrases }}</td>
@@ -91,8 +98,7 @@
             {% endif %}
           </tbody>
         </table>
-        <!-- Add canvas element for chart -->
-        <canvas id="confidenceChart" width="400" height="200"></canvas>
+        
         
         <!-- Initialize the chart with JavaScript -->
         <script>
@@ -122,8 +128,6 @@
               }
           });
         </script>
-
-        <canvas id="sentimentChart" width="400" height="200"></canvas>
 
         <!-- Script for Sentiment Chart -->
         <script>

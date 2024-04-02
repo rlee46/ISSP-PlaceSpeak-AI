@@ -33,7 +33,6 @@ header {
 #flex-container {
   display: flex;
   flex-direction: row;
-  height: 100%;
 }
 
 /* navbar styles */
@@ -43,6 +42,9 @@ nav {
   background-color: #333333;
   display: flex;
   justify-content: center;
+  width: 1800px;
+  height: 1000vh;
+
 }
 
 ul {
@@ -78,7 +80,7 @@ table {
   color: #666666;
 }
 #confidenceChart {
-  display: block; /* Ensures it is not inline */
+  display: block; /* Ensures it is not inline*/
   max-width: 100%; /* Ensures it does not overflow its container */
   margin: auto; /* Centers the chart in its container */
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Optional: Adds a subtle shadow for depth */
@@ -90,6 +92,13 @@ table {
   margin: auto;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   margin-top: 2rem;
+}
+.charts{
+    display: flex;
+}
+.chart{
+    margin: 10px;
+    padding: 20px;
 }
 table, th, td {
   border: 1px solid #666666;
