@@ -2,7 +2,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
+    <meta charset="UTF-8" >
     <title>AI Report</title>
     <!-- bootstrap link-->
     <script>
@@ -11,9 +11,10 @@
         });
         </script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-    <link rel="stylesheet" href="/static/styles.css" />
-    <!-- icons -->
+    <link rel="stylesheet" href="/static/styles.css" >
     <script src="https://kit.fontawesome.com/d08114a007.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   </head>
 
   <body>
@@ -90,7 +91,76 @@
             {% endif %}
           </tbody>
         </table>
+        <!-- Add canvas element for chart -->
+        <canvas id="confidenceChart" width="400" height="200"></canvas>
+        
+        <!-- Initialize the chart with JavaScript -->
+        <script>
+          var ctx = document.getElementById('confidenceChart').getContext('2d');
+          var frequencies = {{ frequencies|safe }};  // Assuming this outputs a proper JavaScript array from Django
+          var confidenceChart = new Chart(ctx, {
+              type: 'bar',
+              data: {
+                  labels: ['0-10%', '11-20%', '21-30%', '31-40%', '41-50%', '51-60%', '61-70%', '71-80%', '81-90%', '91-100%'],
+                  datasets: [{
+                      label: 'Frequency of Confidence Scores',
+                      data: frequencies,
+                      backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                      borderColor: 'rgba(54, 162, 235, 1)',
+                      borderWidth: 1
+                  }]
+              },
+              options: {
+                  scales: {
+                      y: {
+                          beginAtZero: true,
+                          ticks: {
+                              stepSize: 1
+                          }
+                      }
+                  }
+              }
+          });
+        </script>
+
+        <canvas id="sentimentChart" width="400" height="200"></canvas>
+
+        <!-- Script for Sentiment Chart -->
+        <script>
+          var ctx = document.getElementById('sentimentChart').getContext('2d');
+          var sentimentChart = new Chart(ctx, {
+            type: 'pie', // or 'doughnut'
+            data: {
+              labels: ['Neutral', 'Positive', 'Negative'],
+              datasets: [{
+                label: 'Sentiment Analysis',
+                data: [{{ sentiment_frequencies.Neutral|default:"0" }}, 
+                      {{ sentiment_frequencies.Positive|default:"0" }}, 
+                      {{ sentiment_frequencies.Negative|default:"0" }}],
+                backgroundColor: [
+                  'rgba(99, 132, 255, 0.6)',
+                  'rgba(75, 192, 192, 0.6)',
+                  'rgba(255, 99, 132, 0.6)'
+                ],
+                borderColor: [
+                  'rgba(99, 132, 255, 1)',
+                  'rgba(75, 192, 192, 1)',
+                  'rgba(255, 99, 132, 1)'
+                ],
+                borderWidth: 1
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+            }
+          });
+        </script>
       </main>
+      
     </div>
+    
+
+   
   </body>
 </html>

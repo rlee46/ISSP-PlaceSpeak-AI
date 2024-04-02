@@ -5,6 +5,8 @@ from django.shortcuts import render,redirect
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from datetime import datetime
+
+from collections import defaultdict
 import requests
 import csv
 import re
@@ -85,7 +87,12 @@ def send_csv_to_api(request):
                     continue
                 else:
                     successful_query = True
-                
+
+                #calculate confidence scores if successful query
+                frequencies = calculate_frequencies(entries)
+                print(frequencies)
+                request.session['frequencies'] = frequencies
+
                 summary_query = '''I am a government  official who is looking to make a decision based on the input of my community. 
                 The following data is sourced from a discussion post where members of my community discussed their views on the topic.
                 Please generate a 5 to 10 sentence summary that I can use to communicate their feelings to my colleagues and other policy makers.
@@ -116,7 +123,28 @@ def send_csv_to_api(request):
                 return JsonResponse({'error': response.text}, status=response.status_code)
 
     return JsonResponse({'error': 'Invalid request'}, status=400)
+
+def calculate_frequencies(entries):
+    # Convert confidence scores to integers and bin them
+    bins = ['0-9', '10-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80-89', '90-100']
+    score_bins = {bin: 0 for bin in bins}
     
+    for entry in entries:
+        score = int(entry['ConfidenceScore'].rstrip('%'))
+        bin_index = min(score // 10, 9)  # to put 100% in the '90-100' bin
+        bin_label = bins[bin_index]
+        score_bins[bin_label] += 1
+
+    return [score_bins[bin] for bin in bins]
+
+def calculate_sentiment_frequencies(entries):
+    sentiment_counts = defaultdict(int)
+    for entry in entries:
+        sentiment = entry.get('Sentiment', '').capitalize()
+        if sentiment in ['Neutral', 'Positive', 'Negative']:
+            sentiment_counts[sentiment] += 1
+    return dict(sentiment_counts)
+
 def download_data(request):
     # Create the HttpResponse object with the appropriate CSV header.
     response = HttpResponse(content_type='text/csv  ; charset=utf-8')
@@ -144,15 +172,26 @@ def download_data(request):
 def home(request):
     # Fetch actual data from the API or other sources here
     api_response = request.session.get('api_response', None)
+    frequencies = request.session.get('frequencies', None)
+    sentiment_frequencies = None
     if api_response:
         entries = api_response[0]
         summary = api_response[1]
+        sentiment_frequencies = calculate_sentiment_frequencies(entries)
+
         # Convert the string response to JSON
         #del request.session['api_response']
+       
     else:
         entries = None
         summary = None
-    return render(request, 'report.html', {'entries': entries, 'summary':summary})
+
+    return render(request, 'report.html', {
+        'entries': entries,
+        'summary': summary,
+        'frequencies': frequencies,
+        'sentiment_frequencies': sentiment_frequencies
+    })
 
 
 
