@@ -32,11 +32,14 @@ def send_csv_to_api(request):
                     """
     if request.method == 'POST' and 'csv_file' in request.FILES:
         csv_file = request.FILES['csv_file']
+        
         csv_data = remove_non_printable_chars(csv_file.read().decode('utf-8-sig'))
+        
         #print("Size of csv_data in characters:", len(csv_file))
         # Combine CSV data with the standard query
         combined_data = "{}\n{}".format(standard_query, csv_data)
-
+        request.session['file_data'] = combined_data
+        request.session['csv_data'] = csv_data
         # Prepare data to send to the OpenAI API
         api_url = "https://api.openai.com/v1/chat/completions"
         headers = {
@@ -123,6 +126,97 @@ def send_csv_to_api(request):
                 return JsonResponse({'error': response.text}, status=response.status_code)
 
     return JsonResponse({'error': 'Invalid request'}, status=400)
+
+
+def regenerate_analysis(request):
+    
+    combined_data = request.session.get('file_data')
+    csv_data = request.session.get('csv_data')
+    if combined_data and csv_data:
+        api_url = "https://api.openai.com/v1/chat/completions"
+        headers = {
+            "Authorization": "Bearer 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",  # Replace with your actual API key
+            "Content-Type": "application/json",
+        }
+        data = {
+            "model": "gpt-3.5-turbo",
+            "messages": [
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": combined_data}
+            ],
+            "max_tokens": 4096,
+        }
+
+        successful_query = False
+        while not successful_query:
+
+        # Send the request to the OpenAI API
+            response = requests.post(api_url, headers=headers, json=data)
+        
+
+            if response.status_code == 200:
+                response_data = response.json()
+            
+                result = response_data.get("choices")[0].get("message").get("content")
+                entries = []
+                for line in result.strip().split("\n"):
+                    parts = line.split(',')
+                    # Create a dictionary for each line and append to entries
+                    try:
+                        entry = {
+                            'KeyPhrases': parts[0].strip(),
+                            'Sentiment': parts[1].strip(),
+                            'ReactionEmotion': parts[2].strip(),
+                            'ConfidenceScore': parts[3].strip(),
+                        }
+                        entries.append(entry)
+                    except:
+                        break
+
+
+
+                if not(test_confidence_scores(entries) or test_sentiment(entries)):
+                    print(entries)
+                    print(result)
+                    time.sleep(5)
+                    continue
+                else:
+                    successful_query = True
+
+                #calculate confidence scores if successful query
+                frequencies = calculate_frequencies(entries)
+                print(frequencies)
+                request.session['frequencies'] = frequencies
+
+                summary_query = '''I am a government  official who is looking to make a decision based on the input of my community. 
+                The following data is sourced from a discussion post where members of my community discussed their views on the topic.
+                Please generate a 5 to 10 sentence summary that I can use to communicate their feelings to my colleagues and other policy makers.
+                In three sentences or less, please provide a recommendation for how I should proceed based on the feedback observed in this post.   
+                Do not format it in markdown, only use plain text.
+                ''' + csv_data
+                summary_data = {
+                "model": "gpt-3.5-turbo",
+                "messages": [
+                    {"role": "system", "content": "You are a helpful assistant."},
+                    {"role": "user", "content": summary_query}
+                ],
+                "max_tokens": 4096,
+                }
+                summary = requests.post(api_url,headers=headers, json=summary_data)
+                if summary.status_code == 200:
+                    summary_data = summary.json()
+                    summary_result = summary_data.get("choices")[0].get("message").get("content")
+                    #print(summary_result)
+                else:
+                    return JsonResponse({'error': response.text}, status=response.status_code)
+
+
+
+                request.session['api_response'] = [entries, summary_result]
+                return redirect('home')
+            else:
+                return JsonResponse({'error': response.text}, status=response.status_code)
+    return redirect('home')
 
 def calculate_frequencies(entries):
     # Convert confidence scores to integers and bin them

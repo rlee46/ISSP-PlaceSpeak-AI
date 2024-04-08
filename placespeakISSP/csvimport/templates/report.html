@@ -43,9 +43,9 @@
         >
           {% csrf_token %}
             <div>
-                <input type="file" name="csv_file" required />
+                <input type="file" name="csv_file" id="csv_file_input" required />
                 <button type="submit" class="btn btn-primary">Upload and Analyze text/csv</button>
-            
+                <a href="{% url 'regenerate_analysis' %}" class="btn btn-secondary" id="regenerate-btn">Regenerate</a>
                 <a href="{% url 'download_data' %}" class="btn btn-primary float-end" id="download-btn">
                     <i class="fa-solid fa-file-arrow-down"></i>
                 </a>
@@ -160,6 +160,7 @@
             }
           });
         </script>
+      
       </main>
       
     </div>
