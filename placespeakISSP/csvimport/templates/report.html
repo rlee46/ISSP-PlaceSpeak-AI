@@ -45,7 +45,7 @@
             <div>
                 <input type="file" name="csv_file" id="csv_file_input" required />
                 <button type="submit" class="btn btn-primary">Upload and Analyze text/csv</button>
-                <a href="{% url 'regenerate_analysis' %}" class="btn btn-secondary" id="regenerate-btn">Regenerate</a>
+                <a href="{% url 'generate_analysis' %}" class="btn btn-secondary" id="regenerate-btn">Regenerate</a>
                 <a href="{% url 'download_data' %}" class="btn btn-primary float-end" id="download-btn">
                     <i class="fa-solid fa-file-arrow-down"></i>
                 </a>
@@ -99,11 +99,14 @@
           </tbody>
         </table>
         
-        
+        <div id="confidence_container" data-my-variable="{{ confidence_frequencies }}"></div>
         <!-- Initialize the chart with JavaScript -->
+        <script src="../../static/confidence.js"></script>
+        
+        <!--
         <script>
           var ctx = document.getElementById('confidenceChart').getContext('2d');
-          var frequencies = {{ frequencies|safe }};  // Assuming this outputs a proper JavaScript array from Django
+          var frequencies = {{ confidence_frequencies|safe }};  // Assuming this outputs a proper JavaScript array from Django
           var confidenceChart = new Chart(ctx, {
               type: 'bar',
               data: {
@@ -128,6 +131,7 @@
               }
           });
         </script>
+        -->
 
         <!-- Script for Sentiment Chart -->
         <script>

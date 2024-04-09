@@ -5,5 +5,5 @@ urlpatterns = [
     url(r'^$', views.home, name="home"),
     url(r'^download-data/$', views.download_data, name='download_data'),
     url(r'^send-csv-to-api/$', views.send_csv_to_api, name='send_csv_to_api'),
-    url(r'^regenerate-analysis/$', views.regenerate_analysis, name='regenerate_analysis'),
+    url(r'^generate-analysis/$', views.generate_analysis, name='generate_analysis'),
 ]
