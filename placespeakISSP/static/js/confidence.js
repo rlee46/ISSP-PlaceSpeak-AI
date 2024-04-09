@@ -11,7 +11,6 @@ var confidenceChart = new Chart(ctx, {
             label: 'Frequency of Confidence Scores',
             data: arrayStrings,
             backgroundColor: 'rgba(54, 162, 235, 0.5)',
-            borderColor: 'rgba(54, 162, 235, 1)',
             borderWidth: 1
         }]
     },
