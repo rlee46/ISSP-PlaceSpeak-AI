@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-
 from django.shortcuts import render,redirect
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from datetime import datetime
-
+from tests.test_confidence import test_confidence
+from tests.test_sentiment import test_sentiment
 from collections import defaultdict
 import requests
 import csv
@@ -94,7 +94,7 @@ def table_prompt(request):
             # Test confidence scores ensures that the value associated with the confidence score attribute is an integer between 0 and 100
             # Test sentiment ensures that the value associated with the sentiment attribute is one of ['Positive', 'Neutral', 'Negative'] 
             # Should either of these tests fail, the prompt is rerun after a short delay    
-            if not(test_confidence_scores(entries) or test_sentiment(entries)):
+            if not(test_confidence(entries) or test_sentiment(entries)):
                 time.sleep(5)
                 continue
             else:
@@ -199,27 +199,3 @@ def home(request):
     })
 
 
-
-def test_confidence_scores(data):
-    for entry in data:
-        try:
-            a = int((entry['ConfidenceScore'].replace('%-', '')))
-        except:
-            print('type error')
-            return False
-        
-        if not(a >=0 or a <= 100):
-            print('bad value')
-            return False
-        
-    return True
-        
-
-def test_sentiment(data):
-    sentiments = ['positive', 'neutral', 'negative']
-    for entry in data:
-        if not str(entry['Sentiment']).lower() in sentiments:
-            print('sentiment')
-            return False
-        
-    return True

@@ -1,5 +1,5 @@
 var ctx = document.getElementById('confidenceChart').getContext('2d');
-var confidence_frequencies = document.getElementById('confidence_container').getAttribute('data-my-variable');
+var confidence_frequencies = document.getElementById('confidence_container').getAttribute('confidence-variable');
 //var frequencies = {{ confidence_frequencies|safe }};  // Assuming this outputs a proper JavaScript array from Django
 var stringWithoutBrackets = confidence_frequencies.slice(1, -1);
 var arrayStrings = stringWithoutBrackets.split(',');
