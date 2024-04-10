@@ -2,13 +2,19 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
+    <meta charset="UTF-8" >
     <title>AI Report</title>
     <!-- bootstrap link-->
+    <script>
+        $(document).ready(function(){
+          $('[data-toggle="tooltip"]').tooltip();
+        });
+        </script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-    <link rel="stylesheet" href="/static/styles.css" />
-    <!-- icons -->
+    <link rel="stylesheet" href="/static/css/styles.css" >
     <script src="https://kit.fontawesome.com/d08114a007.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   </head>
 
   <body>
@@ -21,13 +27,14 @@
       </div>
     </header>
     <div id="flex-container">
-      <nav>
+      <nav id="side-bar">
         <ul>
           <li><a href="" class="nav-items">Dashboard</a></li>
           <li><a href="" class="nav-items">Charts</a></li>
         </ul>
       </nav>
       <main id="result-container">
+        
         <h1>Results</h1>
                 <form
           action="{% url 'send_csv_to_api' %}"
@@ -36,9 +43,9 @@
         >
           {% csrf_token %}
             <div>
-                <input type="file" name="csv_file" required />
-                <button type="submit" class="btn btn-primary">Upload and Analyze CSV</button>
-            
+                <input type="file" name="csv_file" id="csv_file_input" required />
+                <button type="submit" class="btn btn-primary">Upload and Analyze text/csv</button>
+                <a href="{% url 'generate_analysis' %}" class="btn btn-secondary" id="regenerate-btn">Regenerate</a>
                 <a href="{% url 'download_data' %}" class="btn btn-primary float-end" id="download-btn">
                     <i class="fa-solid fa-file-arrow-down"></i>
                 </a>
@@ -49,29 +56,62 @@
           <!-- Table headers -->
           <thead>
             <tr>
-              <th>ID</th>
               <th>Key Phrases</th>
-              <th>Sentiment</th>
-              <th>Confidence Score</th>
+              <th>Sentiment
+                <button type="button" class="btn btn-sm btn-outline-secondary"
+                data-bs-toggle="tooltip" data-bs-placement="top"
+                data-bs-custom-class="custom-tooltip"
+                title="Sentiment analysis is the use of natural language processing, text analysis, computational linguistics, and biometrics to systematically identify, extract, quantify, and study affective states and subjective information.">
+                i
+                </button>
+                </th>
               <th>Emotion Detection</th>
+              <th>Confidence Score</th>
             </tr>
           </thead>
           <tbody>
             <!-- Dynamically create table rows for each entry -->
+            {% if error %}
+            <h3> An error occured in the analysis process, please wait while we try again.</h3>
+            {% endif %}
+            {% if summary %}
+            <h2> Summary </h2>
+            <p>{{ summary }}</p>
+            {% else %}
+            
+        
+            {% endif %}
+            <!-- Add canvas element for chart -->
+            <div class="charts">
+                <div class="chart"><canvas id="confidenceChart" width="400" height="200"></canvas></div>
+                <div class="chart"><canvas id="sentimentChart" width="400" height="200"></canvas></div>
+            </div>
             {% if entries %} {% for entry in entries %}
             <tr>
-              <td>{{ entry.ID }}</td>
               <td>{{ entry.KeyPhrases }}</td>
               <td>{{ entry.Sentiment }}</td>
-              <td>{{ entry.ConfidenceScore }}</td>
               <td>{{ entry.ReactionEmotion }}</td>
+              <td>{{ entry.ConfidenceScore }}</td>
             </tr>
             {% endfor %} {% else %}
             <!-- You can place a message here or leave it empty if you only want to show the header -->
             {% endif %}
           </tbody>
         </table>
+        
+        <div id="confidence_container" confidence-variable="{{ confidence_frequencies }}"></div>
+        <!-- Initialize the chart with JavaScript -->
+        <script src="../../static/js/confidence.js"></script>
+        
+        <div id="sentiment_container" sentiment-variable="{{ sentiment_frequencies }}"></div>
+        <!-- Initialize the chart with JavaScript -->
+        <script src="../../static/js/sentiment.js"></script>
+
+        <!-- Script for Sentiment Chart -->
+      
       </main>
+      
     </div>
+    
   </body>
 </html>
