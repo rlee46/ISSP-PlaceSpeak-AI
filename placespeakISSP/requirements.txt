@@ -5,3 +5,5 @@ idna==2.10
 pytz==2024.1
 requests==2.27.1
 urllib3==1.26.18
+djangorestframework==3.9.4
+django-cors-headers==2.5.3

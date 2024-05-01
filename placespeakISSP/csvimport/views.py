@@ -1,6 +1,12 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 from django.shortcuts import render,redirect
+
+from rest_framework.views import APIView
+from . models import *
+from rest_framework.response import Response
+from . serializer import *
+
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from datetime import datetime
@@ -11,6 +17,31 @@ import requests
 import csv
 import re
 import time
+import json
+
+class ReportView(APIView):
+    def get(self, request):
+        report = Report.objects.all()
+        serializer = ReportSerializer(report, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        serializer = ReportSerializer(data=request.data)  # Deserialize data from request
+        if serializer.is_valid(raise_exception=True):
+            serializer.save()  # Save new Report object to database
+            return Response(serializer.data)  
+        return Response(serializer.errors)
+
+class CSVAnalysisView(APIView):
+    def post(self, request):
+        data = json.loads(request.body)
+
+        csv_data = data.get('csv_data')  # Extract CSV data from JSON
+        csv_data = csv_data.decode('utf-8-sig')
+        if not csv_data:
+            return Response({"error": "CSV data is required"}, status=400)
+        # Assume you process CSV data here and make a prompt
+        return generate_analysis(csv_data)
 
 def remove_non_printable_chars(text):
     # Define the pattern to match only printable characters
@@ -56,21 +87,70 @@ def prompt(query_type, data):
 
     return requests.post(api_url, headers=headers, json=query_data)
 
-def summary_prompt(request):
-    response = prompt('summary', request.session.get('csv_data'))
+# def summary_prompt(request):
+#     response = prompt('summary', request.session.get('csv_data'))
+#     if response.status_code == 200:
+#         summary_data = response.json()
+#         request.session['summary'] = summary_data.get("choices")[0].get("message").get("content")
+#     else:
+#         return JsonResponse({'error': response.text}, status=response.status_code)
+
+def summary_prompt(csv_data):
+    response = prompt('summary', csv_data)
     if response.status_code == 200:
         summary_data = response.json()
-        request.session['summary'] = summary_data.get("choices")[0].get("message").get("content")
+        return summary_data.get("choices")[0].get("message").get("content")
     else:
         return JsonResponse({'error': response.text}, status=response.status_code)
 
-def table_prompt(request):
+# def table_prompt(request):
+#     # Loops the prompt untill the returned values pass the data tests
+#     successful_query = False
+#     while not successful_query:
+
+#         # Send the request to the OpenAI API
+#         response = prompt('table', request.session.get('csv_data'))
+#         if response.status_code == 200:
+#             response_data = response.json()
+#             result = response_data.get("choices")[0].get("message").get("content")
+#             # Parse the response data into an array of objects where each object is one row in the table
+#             entries = []
+#             for line in result.strip().split("\n"):
+#                 parts = line.split(',')
+#                 # Create a dictionary for each line and append to entries
+#                 try:
+#                     entry = {
+#                         'KeyPhrases': parts[0].strip(),
+#                         'Sentiment': parts[1].strip(),
+#                         'ReactionEmotion': parts[2].strip(),
+#                         'ConfidenceScore': parts[3].strip(),
+#                     }
+#                     entries.append(entry)
+#                 except:
+#                     break
+
+#             # Test data to see if resembles our expectations  
+#             # Test confidence scores ensures that the value associated with the confidence score attribute is an integer between 0 and 100
+#             # Test sentiment ensures that the value associated with the sentiment attribute is one of ['Positive', 'Neutral', 'Negative'] 
+#             # Should either of these tests fail, the prompt is rerun after a short delay    
+#             if not(test_confidence(entries) or test_sentiment(entries)):
+#                 time.sleep(5)
+#                 continue
+#             else:
+#                 print(entries)
+#                 successful_query = True
+            
+#             request.session['table_data'] = entries
+#         else:
+#             return JsonResponse({'error': response.text}, status=response.status_code)
+        
+def table_prompt(csv_data):
     # Loops the prompt untill the returned values pass the data tests
     successful_query = False
     while not successful_query:
 
         # Send the request to the OpenAI API
-        response = prompt('table', request.session.get('csv_data'))
+        response = prompt('table', csv_data)
         if response.status_code == 200:
             response_data = response.json()
             result = response_data.get("choices")[0].get("message").get("content")
@@ -101,7 +181,7 @@ def table_prompt(request):
                 print(entries)
                 successful_query = True
             
-            request.session['table_data'] = entries
+            return entries
         else:
             return JsonResponse({'error': response.text}, status=response.status_code)
 
@@ -126,17 +206,29 @@ def calculate_frequencies(entries):
 
     return [score_bins[bin] for bin in bins]
 
-def generate_analysis(request):
-    # Generate and execute the prompt to create the summary and table
-    summary_prompt(request)
-    table_prompt(request)
+# def generate_analysis(request):
+#     # Generate and execute the prompt to create the summary and table
+#     summary_prompt(request)
+#     table_prompt(request)
 
-    #calculate confidence scores 
-    confidence_frequencies = calculate_frequencies(request.session.get('table_data'))
-    request.session['confidence_frequencies'] = confidence_frequencies
+#     #calculate confidence scores 
+#     confidence_frequencies = calculate_frequencies(request.session.get('table_data'))
+#     request.session['confidence_frequencies'] = confidence_frequencies
     
 
-    return redirect('home')
+#     return redirect('home')
+
+def generate_analysis(csv_data):
+    # Generate and execute the prompt to create the summary and table
+    summary_data = summary_prompt(csv_data)
+    table_data = table_prompt(csv_data)
+
+    #calculate confidence scores 
+    confidence_frequencies = calculate_frequencies(table_data)
+    sentiment_frequencies = calculate_sentiment_frequencies(table_data)
+
+    return Response({"summary": summary_data, "entries": table_data, "confidence_frequencies": confidence_frequencies, "sentiment_frequencies": sentiment_frequencies}, status=200)
+
 
 @csrf_exempt  
 def send_csv_to_api(request): 
@@ -151,8 +243,6 @@ def send_csv_to_api(request):
         
     else:       
         return JsonResponse({'error': 'Invalid request'}, status=400)
-
-
 
 def download_data(request):
     # Create the HttpResponse object with the appropriate CSV header.
