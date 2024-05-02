@@ -1,7 +1,9 @@
-certifi==2021.10.8
-chardet==4.0.0
-Django==1.11.29
-idna==2.10
-pytz==2024.1
-requests==2.27.1
-urllib3==1.26.18
+certifi==2020.4.5
+chardet==3.0.4
+Django==1.8.17
+idna==2.5
+pytz==2014.10
+requests==2.18.0
+urllib3==1.21.1
+djangorestframework==3.2.2
+django-cors-headers==2.0.2 
