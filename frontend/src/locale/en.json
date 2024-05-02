@@ -1,0 +1,26 @@
+{
+  "componentheader": "Results",
+  "summaryHeader": "Summary",
+  "fileSelectLabel": "Choose File",
+  "uploadLabel": "Upload and Analyze Text/CSV",
+  "regenerateLabel": "Regenerate",
+  "noFileSelected": "No file selected",
+  "noFileAnalyzed": "No file analyzed",
+  "selectFileFirst": "Please select a file first!",
+  "uploadFileFirst": "Please upload first!",
+  "table": {
+    "keyPhrase": "Key Phrase",
+    "sentiment": "Sentiment",
+    "emotionDetection": "Emotion Detection",
+    "confidenceScore": "Confidence Score"
+  },
+  "confidenceChart": {
+    "label": "Frequency of Confidence Scores"
+  },
+  "sentimentChart": {
+    "title": "Sentiment Analysis",
+    "neutral": "Neutral",
+    "positive": "Positive",
+    "negative": "Negative"
+  }
+}
