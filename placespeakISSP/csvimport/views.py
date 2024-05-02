@@ -6,6 +6,7 @@ from rest_framework.views import APIView
 from . models import *
 from rest_framework.response import Response
 from . serializer import *
+from django.http import QueryDict
 
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -34,13 +35,24 @@ class ReportView(APIView):
 
 class CSVAnalysisView(APIView):
     def post(self, request):
-        data = json.loads(request.body)
+        # Parse the form-encoded data
+        form_data = QueryDict(request.body)
+        json_string = form_data.get('_content')
 
-        csv_data = data.get('csv_data')  # Extract CSV data from JSON
-        csv_data = csv_data.decode('utf-8-sig')
+        if not json_string:
+            return Response({'error': 'Missing JSON data'}, status=400)
+
+        try:
+            # Decode and load JSON data
+            data = json.loads(json_string)
+        except json.JSONDecodeError as e:
+            return Response({'error': 'Invalid JSON: ' + str(e)}, status=400)
+
+        csv_data = data.get('csv_data')
         if not csv_data:
             return Response({"error": "CSV data is required"}, status=400)
-        # Assume you process CSV data here and make a prompt
+
+        # Assume you process CSV data here and return analysis
         return generate_analysis(csv_data)
 
 def remove_non_printable_chars(text):
