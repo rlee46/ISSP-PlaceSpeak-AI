@@ -24,22 +24,23 @@ function FileHandler({ onData }) {
 
   //Upload CSV data to server
   const upload = (text) => {
-    const data = {
-      csv_data: text,
-    };
-    fetch("http://localhost:8000/analyze/", {
+    const url = "http://localhost:8000/analyze/";
+    const params = new URLSearchParams();
+    params.append('_content', JSON.stringify({ csv_data: text }));
+
+    fetch(url, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "application/x-www-form-urlencoded",
       },
-      body: JSON.stringify(data),
+      body: params
     })
-      .then((response) => response.json())
-      .then((data) => {
-        onData(data);
-        setData(data);
-      })
-      .catch((error) => console.error("Error:", error));
+    .then(response => response.json())
+    .then(data => {
+      onData(data);
+      setData(data);
+    })
+    .catch(error => console.error("Error:", error));
   };
 
   //Convert the table to CSV
