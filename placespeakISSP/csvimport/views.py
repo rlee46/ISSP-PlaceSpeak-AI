@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
+import os
 from django.shortcuts import render,redirect
 
 from rest_framework.views import APIView
@@ -63,6 +64,10 @@ def remove_non_printable_chars(text):
     return clean_text
 
 def prompt(query_type, data):
+    API_KEY = os.getenv("OPENAI_API_KEY")
+    print(API_KEY)
+    if not API_KEY:
+        raise ValueError("OpenAI API key not found in environment variables")
     # Prepare data to send to the OpenAI API
     if query_type == 'summary':
         query = '''
@@ -85,7 +90,7 @@ def prompt(query_type, data):
     
     api_url = "https://api.openai.com/v1/chat/completions"
     headers = {
-        "Authorization": "Bearer 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",  # API key
+        "Authorization": "Bearer {api_key}".format(api_key = API_KEY),  # API key
         "Content-Type": "application/json",
     }
     query_data = {
