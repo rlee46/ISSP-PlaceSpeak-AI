@@ -21,6 +21,7 @@
 *.env
 *.pyc
 *.DS_Store
+*.bat
 
 npm-debug.log*
 yarn-debug.log*
