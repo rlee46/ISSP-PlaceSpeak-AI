@@ -26,21 +26,21 @@ function FileHandler({ onData }) {
   const upload = (text) => {
     const url = "http://localhost:8080/analyze/";
     const params = new URLSearchParams();
-    params.append('_content', JSON.stringify({ csv_data: text }));
+    params.append("_content", JSON.stringify({ csv_data: text }));
 
     fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
       },
-      body: params
+      body: params,
     })
-    .then(response => response.json())
-    .then(data => {
-      onData(data);
-      setData(data);
-    })
-    .catch(error => console.error("Error:", error));
+      .then((response) => response.json())
+      .then((data) => {
+        onData(data);
+        setData(data);
+      })
+      .catch((error) => console.error("Error:", error));
   };
 
   //Convert the table to CSV
