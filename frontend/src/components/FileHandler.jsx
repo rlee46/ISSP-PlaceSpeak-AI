@@ -24,7 +24,7 @@ function FileHandler({ onData }) {
 
   //Upload CSV data to server
   const upload = (text) => {
-    const url = "http://localhost:8000/analyze/";
+    const url = "http://localhost:8080/analyze/";
     const params = new URLSearchParams();
     params.append('_content', JSON.stringify({ csv_data: text }));
 
