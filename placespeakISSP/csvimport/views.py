@@ -49,12 +49,14 @@ class CSVAnalysisView(APIView):
         except json.JSONDecodeError as e:
             return Response({'error': 'Invalid JSON: ' + str(e)}, status=400)
 
-        csv_data = data.get('csv_data')
-        if not csv_data:
-            return Response({"error": "CSV data is required"}, status=400)
-
-        # Assume you process CSV data here and return analysis
-        return generate_analysis(csv_data)
+        # Use the serializer to validate the data
+        serializer = CSVUploadSerializer(data=data)
+        if serializer.is_valid():
+            csv_data = serializer.validated_data['csv_data']
+            # Process the CSV data here and return analysis
+            return generate_analysis(csv_data)
+        else:
+            return Response(serializer.errors, status=400)
 
 def remove_non_printable_chars(text):
     # Define the pattern to match only printable characters
@@ -240,12 +242,24 @@ def generate_analysis(csv_data):
     summary_data = summary_prompt(csv_data)
     table_data = table_prompt(csv_data)
 
-    #calculate confidence scores 
+    # Calculate confidence scores
     confidence_frequencies = calculate_frequencies(table_data)
     sentiment_frequencies = calculate_sentiment_frequencies(table_data)
 
-    return Response({"summary": summary_data, "entries": table_data, "confidence_frequencies": confidence_frequencies, "sentiment_frequencies": sentiment_frequencies}, status=200)
+    # Prepare data for serialization
+    analysis_data = {
+        "summary": summary_data,
+        "entries": table_data,
+        "confidence_frequencies": confidence_frequencies,
+        "sentiment_frequencies": sentiment_frequencies
+    }
 
+    # Use the serializer to validate and format the response data
+    serializer = AnalysisDataSerializer(data=analysis_data)
+    if serializer.is_valid():
+        return Response(serializer.data, status=200)
+    else:
+        return Response(serializer.errors, status=400)
 
 @csrf_exempt  
 def send_csv_to_api(request): 
