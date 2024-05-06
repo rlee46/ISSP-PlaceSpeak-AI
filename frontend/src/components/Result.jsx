@@ -1,6 +1,6 @@
 import locale from "../locale/en.json";
 import ConfidenceBarChart from "./ConfidenceBarChart";
-import SentimentPieChart from "./SentimentPieChart";
+import PieChart from "./PieChart";
 
 function Result({ summary }) {
   if (!summary) {
@@ -11,6 +11,34 @@ function Result({ summary }) {
       </>
     );
   }
+
+  //Process sentiment data
+  const sentimentData = [
+    summary.sentiment_frequencies.Negative,
+    summary.sentiment_frequencies.Neutral,
+    summary.sentiment_frequencies.Positive,
+  ];
+  const sentimentLabels = [
+    locale.sentimentChart.negative,
+    locale.sentimentChart.neutral,
+    locale.sentimentChart.positive,
+  ];
+
+  //Process location data
+  let locationLabels = [];
+  let locationData = [];
+  summary.entries.forEach((entry) => {
+    const index = locationLabels.findIndex(
+      (location) => location === entry.Location
+    );
+    if (index < 0) {
+      locationLabels.push(entry.Location);
+      locationData.push(1);
+    } else {
+      const freq = locationData[index];
+      locationData.splice(index, 1, freq + 1);
+    }
+  });
 
   return (
     <>
@@ -28,9 +56,12 @@ function Result({ summary }) {
           </div>
           <div className="card">
             <div className="card-body">
-              <SentimentPieChart
-                sentimentData={summary.sentiment_frequencies}
-              />
+              <PieChart data={sentimentData} labels={sentimentLabels} />
+            </div>
+          </div>
+          <div className="card">
+            <div className="card-body">
+              <PieChart data={locationData} labels={locationLabels} />
             </div>
           </div>
         </div>
@@ -41,6 +72,7 @@ function Result({ summary }) {
               <th scope="col">{locale.table.sentiment}</th>
               <th scope="col">{locale.table.emotionDetection}</th>
               <th scope="col">{locale.table.confidenceScore}</th>
+              <th scope="col">{locale.table.location}</th>
             </tr>
           </thead>
           <tbody>
@@ -50,6 +82,7 @@ function Result({ summary }) {
                 <td>{entry.Sentiment}</td>
                 <td>{entry.ReactionEmotion}</td>
                 <td>{entry.ConfidenceScore}</td>
+                <td>{entry.Location}</td>
               </tr>
             ))}
           </tbody>
