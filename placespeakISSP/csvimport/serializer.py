@@ -9,6 +9,7 @@ class EntrySerializer(serializers.Serializer):
     Sentiment = serializers.CharField()
     ReactionEmotion = serializers.CharField()
     ConfidenceScore = serializers.CharField()
+    Location = serializers.CharField()
     
 class AnalysisDataSerializer(serializers.Serializer):
     summary = serializers.CharField(allow_blank=True)

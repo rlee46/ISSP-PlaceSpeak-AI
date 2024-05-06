@@ -73,8 +73,9 @@ def prompt(query_type, data):
         column 2:Evaluate the sentiment of the response from positive, neutral, or negative
         column 3:Determine the reaction/emotion
         column 4:Generate a confidence score in a percentage  
-        Format the data as Key Words, Sentiment, Reaction/Emotion, Confidence Score
-        Here is an example: `Freedom & Responsibility, Positive, Happy, 100%`
+        column 5:Determine the location of the response from csv data
+        Format the data as Key Words, Sentiment, Reaction/Emotion, Confidence Score, Location
+        Here is an example: `Freedom & Responsibility, Positive, Happy, 100%, City of Burnaby`
         """ + data
     
     api_url = "https://api.openai.com/v1/chat/completions"
@@ -115,13 +116,13 @@ def table_prompt(csv_data):
             entries = []
             for line in result.strip().split("\n"):
                 parts = line.split(',')
-                # Create a dictionary for each line and append to entries
                 try:
                     entry = {
                         'KeyPhrases': parts[0].strip(),
                         'Sentiment': parts[1].strip(),
                         'ReactionEmotion': parts[2].strip(),
                         'ConfidenceScore': parts[3].strip(),
+                        'Location': parts[4].strip()  # New column for location
                     }
                     entries.append(entry)
                 except:
