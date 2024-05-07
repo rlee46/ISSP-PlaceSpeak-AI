@@ -21,19 +21,6 @@ import re
 import time
 import json
 
-class ReportView(APIView):
-    def get(self, request):
-        report = Report.objects.all()
-        serializer = ReportSerializer(report, many=True)
-        return Response(serializer.data)
-
-    def post(self, request):
-        serializer = ReportSerializer(data=request.data)  # Deserialize data from request
-        if serializer.is_valid(raise_exception=True):
-            serializer.save()  # Save new Report object to database
-            return Response(serializer.data)  
-        return Response(serializer.errors)
-
 class CSVAnalysisView(APIView):
     def post(self, request):
         # Parse the form-encoded data
@@ -49,12 +36,14 @@ class CSVAnalysisView(APIView):
         except json.JSONDecodeError as e:
             return Response({'error': 'Invalid JSON: ' + str(e)}, status=400)
 
-        csv_data = data.get('csv_data')
-        if not csv_data:
-            return Response({"error": "CSV data is required"}, status=400)
-
-        # Assume you process CSV data here and return analysis
-        return generate_analysis(csv_data)
+        # Use the serializer to validate the data
+        serializer = CSVUploadSerializer(data=data)
+        if serializer.is_valid():
+            csv_data = serializer.validated_data['csv_data']
+            # Process the CSV data here and return analysis
+            return generate_analysis(csv_data)
+        else:
+            return Response(serializer.errors, status=400)
 
 def remove_non_printable_chars(text):
     # Define the pattern to match only printable characters
@@ -84,8 +73,9 @@ def prompt(query_type, data):
         column 2:Evaluate the sentiment of the response from positive, neutral, or negative
         column 3:Determine the reaction/emotion
         column 4:Generate a confidence score in a percentage  
-        Format the data as Key Words, Sentiment, Reaction/Emotion, Confidence Score
-        Here is an example: `Freedom & Responsibility, Positive, Happy, 100%`
+        column 5:Determine the location of the response from csv data
+        Format the data as Key Words, Sentiment, Reaction/Emotion, Confidence Score, Location
+        Here is an example: `Freedom & Responsibility, Positive, Happy, 100%, City of Burnaby`
         """ + data
     
     api_url = "https://api.openai.com/v1/chat/completions"
@@ -104,14 +94,6 @@ def prompt(query_type, data):
 
     return requests.post(api_url, headers=headers, json=query_data)
 
-# def summary_prompt(request):
-#     response = prompt('summary', request.session.get('csv_data'))
-#     if response.status_code == 200:
-#         summary_data = response.json()
-#         request.session['summary'] = summary_data.get("choices")[0].get("message").get("content")
-#     else:
-#         return JsonResponse({'error': response.text}, status=response.status_code)
-
 def summary_prompt(csv_data):
     response = prompt('summary', csv_data)
     if response.status_code == 200:
@@ -119,47 +101,6 @@ def summary_prompt(csv_data):
         return summary_data.get("choices")[0].get("message").get("content")
     else:
         return JsonResponse({'error': response.text}, status=response.status_code)
-
-# def table_prompt(request):
-#     # Loops the prompt untill the returned values pass the data tests
-#     successful_query = False
-#     while not successful_query:
-
-#         # Send the request to the OpenAI API
-#         response = prompt('table', request.session.get('csv_data'))
-#         if response.status_code == 200:
-#             response_data = response.json()
-#             result = response_data.get("choices")[0].get("message").get("content")
-#             # Parse the response data into an array of objects where each object is one row in the table
-#             entries = []
-#             for line in result.strip().split("\n"):
-#                 parts = line.split(',')
-#                 # Create a dictionary for each line and append to entries
-#                 try:
-#                     entry = {
-#                         'KeyPhrases': parts[0].strip(),
-#                         'Sentiment': parts[1].strip(),
-#                         'ReactionEmotion': parts[2].strip(),
-#                         'ConfidenceScore': parts[3].strip(),
-#                     }
-#                     entries.append(entry)
-#                 except:
-#                     break
-
-#             # Test data to see if resembles our expectations  
-#             # Test confidence scores ensures that the value associated with the confidence score attribute is an integer between 0 and 100
-#             # Test sentiment ensures that the value associated with the sentiment attribute is one of ['Positive', 'Neutral', 'Negative'] 
-#             # Should either of these tests fail, the prompt is rerun after a short delay    
-#             if not(test_confidence(entries) or test_sentiment(entries)):
-#                 time.sleep(5)
-#                 continue
-#             else:
-#                 print(entries)
-#                 successful_query = True
-            
-#             request.session['table_data'] = entries
-#         else:
-#             return JsonResponse({'error': response.text}, status=response.status_code)
         
 def table_prompt(csv_data):
     # Loops the prompt untill the returned values pass the data tests
@@ -175,13 +116,13 @@ def table_prompt(csv_data):
             entries = []
             for line in result.strip().split("\n"):
                 parts = line.split(',')
-                # Create a dictionary for each line and append to entries
                 try:
                     entry = {
                         'KeyPhrases': parts[0].strip(),
                         'Sentiment': parts[1].strip(),
                         'ReactionEmotion': parts[2].strip(),
                         'ConfidenceScore': parts[3].strip(),
+                        'Location': parts[4].strip()  # New column for location
                     }
                     entries.append(entry)
                 except:
@@ -223,86 +164,32 @@ def calculate_frequencies(entries):
 
     return [score_bins[bin] for bin in bins]
 
-# def generate_analysis(request):
-#     # Generate and execute the prompt to create the summary and table
-#     summary_prompt(request)
-#     table_prompt(request)
-
-#     #calculate confidence scores 
-#     confidence_frequencies = calculate_frequencies(request.session.get('table_data'))
-#     request.session['confidence_frequencies'] = confidence_frequencies
-    
-
-#     return redirect('home')
-
 def generate_analysis(csv_data):
     # Generate and execute the prompt to create the summary and table
     summary_data = summary_prompt(csv_data)
     table_data = table_prompt(csv_data)
 
-    #calculate confidence scores 
+    # Calculate confidence scores
     confidence_frequencies = calculate_frequencies(table_data)
     sentiment_frequencies = calculate_sentiment_frequencies(table_data)
 
-    return Response({"summary": summary_data, "entries": table_data, "confidence_frequencies": confidence_frequencies, "sentiment_frequencies": sentiment_frequencies}, status=200)
+    # Prepare data for serialization
+    analysis_data = {
+        "summary": summary_data,
+        "entries": table_data,
+        "confidence_frequencies": confidence_frequencies,
+        "sentiment_frequencies": sentiment_frequencies
+    }
 
-
-@csrf_exempt  
-def send_csv_to_api(request): 
-    if request.method == 'POST' and 'csv_file' in request.FILES:
-        # Obtain csv file passed by user
-        csv_file = request.FILES['csv_file']
-        # Parse the file and remove unreadable characters
-        csv_data = remove_non_printable_chars(csv_file.read().decode('utf-8-sig'))
-        # Add the data to the session
-        request.session['csv_data'] = csv_data
-        return generate_analysis(request)
-        
-    else:       
-        return JsonResponse({'error': 'Invalid request'}, status=400)
-
-def download_data(request):
-    # Create the HttpResponse object with the appropriate CSV header.
-    response = HttpResponse(content_type='text/csv  ; charset=utf-8')
-    response['Content-Disposition'] = 'attachment; filename="sentiment_analysis_data_{}.csv"'.format(datetime.now().strftime("%Y%m%d_%H%M%S"))
-   # response['Content-Disposition'] = 'attachment; filename="sentiment_analysis_data.csv"'
-    writer = csv.writer(response)
-    writer.writerow(['KeyPhrases', 'Sentiment', 'ConfidenceScore', 'ReactionEmotion'])
-
-    entries = request.session.get('table_data',None)
-    if entries:  # Check if entries is not None or empty
-        for entry in entries:
-            writer.writerow([
-                entry.get('KeyPhrases', ''),
-                entry.get('Sentiment', ''),
-                entry.get('ConfidenceScore', ''),
-                entry.get('ReactionEmotion', '')
-            ])
+    # Use the serializer to validate and format the response data
+    serializer = AnalysisDataSerializer(data=analysis_data)
+    if serializer.is_valid():
+        return Response(serializer.data, status=200)
     else:
-        # Handle the case where there are no entries, perhaps write a row that indicates no data
-        writer.writerow(['No data available.'])
-    
-    return response
+        return Response(serializer.errors, status=400)
 
-def home(request):
-    # Fetch actual data from the API or other sources here
-    
-    summary = request.session.get('summary', None)
-    table_data = request.session.get('table_data', None)
-    confidence_frequencies = request.session.get('confidence_frequencies', None)
-    # sentiment_frequencies = request.session.get('sentiment_frequencies', None)
 
-    if table_data:
-        sentiment_frequencies = calculate_sentiment_frequencies(request.session.get('table_data'))
-        request.session['sentiment_frequencies'] = sentiment_frequencies
-    else:
-        sentiment_frequencies = None
 
-    return render(request, 'report.html', {
-        'entries': table_data,
-        'summary': summary,
-        'confidence_frequencies': confidence_frequencies,
-        'sentiment_frequencies': sentiment_frequencies
-    })
+
 
 

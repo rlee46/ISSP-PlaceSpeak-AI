@@ -15,10 +15,10 @@ Including another URLconf
 """
 from django.conf.urls import url, include
 from django.contrib import admin
-from csvimport.views import ReportView, CSVAnalysisView
+from csvimport.views import CSVAnalysisView
 
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
-    url(r'^$', ReportView.as_view(), name='anything'),
+    url(r'^$', CSVAnalysisView.as_view(), name='anything'),
     url(r'^analyze/$', CSVAnalysisView.as_view(), name='analyze')
 ]

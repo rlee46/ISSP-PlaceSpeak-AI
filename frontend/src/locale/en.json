@@ -12,7 +12,8 @@
     "keyPhrase": "Key Phrase",
     "sentiment": "Sentiment",
     "emotionDetection": "Emotion Detection",
-    "confidenceScore": "Confidence Score"
+    "confidenceScore": "Confidence Score",
+    "location": "Location"
   },
   "confidenceChart": {
     "label": "Frequency of Confidence Scores"

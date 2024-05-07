@@ -52,6 +52,7 @@ function FileHandler({ onData }) {
           Sentiment: entry.Sentiment,
           EmotionDetection: entry.ReactionEmotion,
           ConfidenceScore: entry.ConfidenceScore,
+          Location: entry.Location,
         };
       }),
     ];
