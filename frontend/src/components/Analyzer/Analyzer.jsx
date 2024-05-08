@@ -1,6 +1,6 @@
 import FileHandler from "./FileHandler";
 import Result from "./Result";
-import "../css/Analyzer.css";
+import "../../css/Analyzer.css";
 import { useState } from "react";
 
 function Analyzer() {

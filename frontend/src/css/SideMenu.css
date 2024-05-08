@@ -1,0 +1,49 @@
+.sidebar-container {
+  display: grid;
+  width: 290px;
+  height: 100%;
+  grid-template-columns: 50px 1fr;
+  gap: 0px 0px;
+  grid-auto-flow: row;
+  grid-template-areas: "sidebar menu";
+}
+
+.sidebar {
+  grid-area: sidebar;
+  background: linear-gradient(#bfd047, #fff);
+}
+
+#tachometer {
+  width: 35px;
+}
+
+.sidebar-btn {
+  text-align: center;
+  margin-top: 10px;
+}
+
+.menu {
+  grid-area: menu;
+  background: #333;
+  padding: 5%;
+}
+
+.nav-item {
+  width: 35px;
+  text-align: center;
+}
+
+a {
+  color: white;
+  text-decoration: none;
+}
+
+.menu-item {
+  padding: 5%;
+}
+
+.menu-item:hover {
+  background-color: grey;
+  text-decoration: none;
+  cursor: pointer;
+}

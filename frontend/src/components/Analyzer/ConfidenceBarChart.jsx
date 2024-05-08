@@ -9,7 +9,7 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
-import locale from "../locale/en.json";
+import locale from "../../locale/en.json";
 
 ChartJS.register(
   CategoryScale,

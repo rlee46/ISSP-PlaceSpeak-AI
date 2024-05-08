@@ -1,0 +1,33 @@
+.navbar-container {
+  display: grid;
+  grid-template-columns: 290px 1fr 1fr;
+  grid-template-rows: 50px;
+  gap: 0px 0px;
+  grid-template-areas: "logo title buttons";
+}
+
+.logo {
+  grid-area: logo;
+  text-align: center;
+  align-content: center;
+  background-color: #f8f9ea;
+}
+
+.title {
+  grid-area: title;
+  text-align: left;
+  align-content: center;
+  color: #333;
+  font-size: 22px;
+  padding: 0 3% 0 3%;
+}
+
+.buttons {
+  grid-area: buttons;
+  text-align: end;
+  align-content: center;
+}
+
+.buttons .btn {
+  margin: 1%;
+}
