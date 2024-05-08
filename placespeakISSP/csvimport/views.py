@@ -77,7 +77,11 @@ def count_csv_rows(csv_data):
     # Return the count of data rows
     return len(data_rows)
 
-
+#estimate number of tokens in the payload
+def num_tokens(data):
+    pattern = r'\w+|[^\w\s]'
+    tokens = re.findall(pattern, data)
+    return len(tokens)
 
 def generate_completion(query):
         API_KEY = os.getenv("OPENAI_API_KEY")
@@ -117,12 +121,12 @@ def process_batch(batch_data):
         Here is an example: `Freedom & Responsibility, Positive, Happy, 100%
         Note: The last value in the provided data represents the row count. Return the same amount of rows`
         """ + batch_data_str + str(row_count)   # Concatenate batch_data_str
-
+        total_tokens = num_tokens(query)
         return generate_completion(query).json().get("choices")[0].get("message").get("content")
 
 def csv_to_array(csv_data):
     # Split CSV data into lines
-    lines = csv_data.strip().split('\n')
+    lines = csv_data.strip().split('\n') 
 
     # Get header and remove it from lines
     header = lines.pop(0)
@@ -163,7 +167,7 @@ def prompt(query_type, data):
         return generate_completion(query)
     elif query_type == 'table':
         count = 0
-        batch_size = 5
+        batch_size = 10
         data_array = csv_to_array(data)
         num_rows = len(data_array)
         num_batches = math.ceil(num_rows / batch_size)
