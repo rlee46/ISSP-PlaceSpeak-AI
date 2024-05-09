@@ -144,7 +144,6 @@ def csv_to_array(csv_data):
 
 def prompt(query_type, data):
     
-    print(data)
     # Prepare data to send to the OpenAI API
     if query_type == 'summary':
         query = '''
@@ -166,11 +165,8 @@ def prompt(query_type, data):
         results = []
         for i in range(int(num_batches+1)):
             start_idx = i * batch_size
-            
             end_idx = min((i + 1) * batch_size, num_rows)
-            print(data_array)
             batch_data = data_array[start_idx:end_idx]
-            print(batch_data)
             batch_result = process_batch(batch_data)
             count += len(batch_result)
             results.append(batch_result)
