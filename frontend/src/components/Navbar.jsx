@@ -5,7 +5,16 @@ const Navbar = () => {
   return (
     <div className="navbar-container">
       <div className="logo">
-        <img src="/logo_placespeak.png" alt="logo"></img>
+        <div id="bigger-logo">
+          <img src="/logo_placespeak.png" alt="logo"></img>
+        </div>
+        <div id="smaller-logo">
+          <img
+            src="/logo_placespeak_small.png"
+            alt="logo-small"
+            id="sm-logo-img"
+          ></img>
+        </div>
       </div>
       <div className="title">
         <span>Report Generator</span>

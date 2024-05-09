@@ -6,6 +6,36 @@
   grid-template-areas: "logo title buttons";
 }
 
+#bigger-logo {
+  display: block;
+}
+
+#smaller-logo {
+  display: none;
+}
+
+@media only screen and (max-width: 700px) {
+  .navbar-container {
+    display: grid;
+    grid-template-columns: 50px 1fr 1fr;
+    grid-template-rows: 50px;
+    gap: 0px 0px;
+    grid-template-areas: "logo title buttons";
+  }
+
+  #bigger-logo {
+    display: none;
+  }
+
+  #smaller-logo {
+    display: block;
+  }
+
+  #sm-logo-img {
+    width: 40px;
+  }
+}
+
 .logo {
   grid-area: logo;
   text-align: center;
