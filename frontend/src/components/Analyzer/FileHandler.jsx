@@ -1,4 +1,4 @@
-import locale from "../locale/en.json";
+import locale from "../../locale/en.json";
 import { useState } from "react";
 
 function FileHandler({ onData }) {
