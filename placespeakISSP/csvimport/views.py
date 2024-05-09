@@ -117,12 +117,11 @@ def process_batch(batch_data):
 
 def csv_to_array(csv_data):
     # Split CSV data into lines
-    lines = csv_data.strip().split('\n') 
+    lines = csv_data.strip().split('\n')
 
     # Get header and remove it from lines
     header = lines.pop(0)
     
-    lines = lines[1:]
     # Split header into keys
     keys = header.split(',')
 
@@ -131,14 +130,19 @@ def csv_to_array(csv_data):
 
     # Iterate over remaining lines to create dictionaries
     for line in lines:
-        
+        # Split line into values
         values = line.split(',')
+        
+        # Check if the number of values matches the number of keys
+        if len(values) != len(keys):
+            continue  # Skip lines that don't have the correct number of values
+        
         data_dict = {}
         for i, key in enumerate(keys):
-            data_dict[key] = values[i]
+            data_dict[key] = values[i].strip()  # Strip any extra whitespace
+
         data_array.append(data_dict)
 
-    
     return data_array
 
 
