@@ -61,11 +61,11 @@ def count_csv_rows(csv_data):
     # Split the CSV data into lines
     lines = csv_data.strip().split('\n')
     
-    # Exclude the header row
-    data_rows = lines[2:]
+    # Create a new list containing only non-empty lines
+    non_empty_lines = [line for line in lines if len(line) > 0]
     
-    # Return the count of data rows
-    return len(data_rows)
+    # Return the count of non-empty data rows
+    return len(non_empty_lines)
 
 #estimate number of tokens in the payload
 def num_tokens(data):
@@ -97,23 +97,30 @@ def generate_completion(query):
         return response
 
 def process_batch(batch_data):
+        resultCount = 0
+        result = ""
         batch_data_str = str(batch_data)
         row_count = len(batch_data)
         print("batch count: ", row_count)
+        while(resultCount != row_count):
         # Construct the query
-        query = """
-        Generate the result in csv format without any explanation. Do not include a header for the data. For each response,
-        column 1: Select one or more keywords from the response. If there is more than one keyword, separate them with `&` not commas
-        column 2: Evaluate the sentiment of the response from positive, neutral, or negative
-        column 3: Determine the reaction/emotion
-        column 4: Generate a confidence score in a percentage
-        column 5:Determine the location of the response from csv data
-        Format the data as Key Words, Sentiment, Reaction/Emotion, Confidence Score, Location
-        Here is an example: `Freedom & Responsibility, Positive, Happy, 100%, City of Burnaby
-        Note: The last value in the provided data represents the row count. Return the same amount of rows`
-        """ + batch_data_str + str(row_count)   # Concatenate batch_data_str
+            query = """
+            Generate the result in csv format without any explanation. Do not include a header for the data. For each response,
+            column 1: Select one or more keywords from the response. If there is more than one keyword, separate them with `&` not commas
+            column 2: Evaluate the sentiment of the response from positive, neutral, or negative
+            column 3: Determine the reaction/emotion
+            column 4: Generate a confidence score in a percentage
+            column 5:Determine the location of the response from csv data
+            Format the data as Key Words, Sentiment, Reaction/Emotion, Confidence Score, Location
+            Here is an example: `Freedom & Responsibility, Positive, Happy, 100%, City of Burnaby
+            Note: The last number is the rows. Return the same number of rows in response`
+            """ + batch_data_str + " ROWS: " + str(row_count)   # Concatenate batch_data_str
+            result =  generate_completion(query).json().get("choices")[0].get("message").get("content")
+            resultCount = count_csv_rows(result)
+            if resultCount !=row_count: 
+                    print("RERUNNING: Incorrect number of ROWS")
         
-        return generate_completion(query).json().get("choices")[0].get("message").get("content")
+        return result
 
 def csv_to_array(csv_data):
     # Split CSV data into lines
@@ -168,6 +175,11 @@ def prompt(query_type, data):
             end_idx = min((i + 1) * batch_size, num_rows)
             batch_data = data_array[start_idx:end_idx]
             batch_result = process_batch(batch_data)
+            print("----------------------------")
+            print("Batch Number: "+ str(i))
+            print(batch_result)
+            print("result row:", count_csv_rows(batch_result))
+            print("----------------------------")
             count += len(batch_result)
             results.append(batch_result)
     
