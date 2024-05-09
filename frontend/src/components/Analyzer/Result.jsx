@@ -1,4 +1,4 @@
-import locale from "../locale/en.json";
+import locale from "../../locale/en.json";
 import ConfidenceBarChart from "./ConfidenceBarChart";
 import PieChart from "./PieChart";
 
@@ -65,7 +65,7 @@ function Result({ summary }) {
             </div>
           </div>
         </div>
-        <table className="table table-bordered">
+        <table className="table table-bordered table-hover">
           <thead>
             <tr>
               <th scope="col">{locale.table.keyPhrase}</th>
