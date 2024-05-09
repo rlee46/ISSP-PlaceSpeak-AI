@@ -13,13 +13,22 @@
   background: linear-gradient(#bfd047, #fff);
 }
 
-#tachometer {
+.btn-icon {
   width: 35px;
+}
+
+.btn-icon-small {
+  width: 20px;
 }
 
 .sidebar-btn {
   text-align: center;
-  margin-top: 10px;
+  padding-top: 20px;
+}
+
+.sidebar-btn-bottom {
+  text-align: center;
+  padding-bottom: 20px;
 }
 
 .menu {
@@ -46,4 +55,18 @@ a {
   background-color: grey;
   text-decoration: none;
   cursor: pointer;
+}
+
+.sidebar-top {
+  height: 50%;
+}
+
+.sidebar-bottom {
+  align-content: end;
+  height: 50%;
+}
+
+.circle-mask {
+  border-radius: 50%;
+  object-fit: cover;
 }
