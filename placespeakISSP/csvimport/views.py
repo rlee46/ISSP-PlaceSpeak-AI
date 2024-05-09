@@ -174,16 +174,17 @@ def prompt(query_type, data):
             start_idx = i * batch_size
             end_idx = min((i + 1) * batch_size, num_rows)
             batch_data = data_array[start_idx:end_idx]
-            batch_result = process_batch(batch_data)
             print("----------------------------")
             print("Batch Number: "+ str(i))
+            batch_result = process_batch(batch_data)
             print(batch_result)
-            print("result row:", count_csv_rows(batch_result))
+            row_result = count_csv_rows(batch_result)
+            print("result row:", row_result)
             print("----------------------------")
-            count += len(batch_result)
+            count += row_result
             results.append(batch_result)
     
-    
+    print("Total Lines: " + str(count))
     return results
 
 def summary_prompt(csv_data):
