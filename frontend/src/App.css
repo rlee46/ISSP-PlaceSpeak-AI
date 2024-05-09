@@ -1,7 +1,7 @@
 .app-container {
   height: 100vh;
   display: grid;
-  grid-template-columns: 0.6fr 1fr 1fr;
+  grid-template-columns: 290px 1fr 1fr;
   grid-template-rows: 0.01fr 1fr;
   gap: 0px 0px;
   grid-auto-flow: row;
