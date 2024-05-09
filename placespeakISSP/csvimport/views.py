@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
+import math
 import os
 from django.shortcuts import render,redirect
 
@@ -21,6 +22,7 @@ import re
 import time
 import json
 
+
 class CSVAnalysisView(APIView):
     def post(self, request):
         # Parse the form-encoded data
@@ -33,6 +35,7 @@ class CSVAnalysisView(APIView):
         try:
             # Decode and load JSON data
             data = json.loads(json_string)
+            
         except json.JSONDecodeError as e:
             return Response({'error': 'Invalid JSON: ' + str(e)}, status=400)
 
@@ -44,6 +47,7 @@ class CSVAnalysisView(APIView):
             return generate_analysis(csv_data)
         else:
             return Response(serializer.errors, status=400)
+        
 
 def remove_non_printable_chars(text):
     # Define the pattern to match only printable characters
@@ -52,11 +56,95 @@ def remove_non_printable_chars(text):
     clean_text = re.sub(printable_pattern, '', text)
     return clean_text
 
+def count_csv_rows(csv_data):
+    # Assuming csv_data is a string containing CSV data
+    # Split the CSV data into lines
+    lines = csv_data.strip().split('\n')
+    
+    # Exclude the header row
+    data_rows = lines[2:]
+    
+    # Return the count of data rows
+    return len(data_rows)
+
+#estimate number of tokens in the payload
+def num_tokens(data):
+    pattern = r'\w+|[^\w\s]'
+    tokens = re.findall(pattern, data)
+    return len(tokens)
+
+def generate_completion(query):
+        API_KEY = os.getenv("OPENAI_API_KEY")
+        if not API_KEY:
+            raise ValueError("OpenAI API key not found in environment variables")
+
+        api_url = "https://api.openai.com/v1/chat/completions"
+        headers = {
+            "Authorization": "Bearer {api_key}".format(api_key=API_KEY),
+            "Content-Type": "application/json",
+        }
+        query_data = {
+            "model": "gpt-3.5-turbo",
+            "messages": [
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": query}
+            ],
+            "max_tokens": 4096,
+        }
+        
+        response = requests.post(api_url, headers=headers, json=query_data)
+        
+        return response
+
+def process_batch(batch_data):
+        batch_data_str = str(batch_data)
+        row_count = len(batch_data)
+        print("batch count: ", row_count)
+        # Construct the query
+        query = """
+        Generate the result in csv format without any explanation. Do not include a header for the data. For each response,
+        column 1: Select one or more keywords from the response. If there is more than one keyword, separate them with `&` not commas
+        column 2: Evaluate the sentiment of the response from positive, neutral, or negative
+        column 3: Determine the reaction/emotion
+        column 4: Generate a confidence score in a percentage
+        column 5:Determine the location of the response from csv data
+        Format the data as Key Words, Sentiment, Reaction/Emotion, Confidence Score, Location
+        Here is an example: `Freedom & Responsibility, Positive, Happy, 100%, City of Burnaby
+        Note: The last value in the provided data represents the row count. Return the same amount of rows`
+        """ + batch_data_str + str(row_count)   # Concatenate batch_data_str
+        
+        return generate_completion(query).json().get("choices")[0].get("message").get("content")
+
+def csv_to_array(csv_data):
+    # Split CSV data into lines
+    lines = csv_data.strip().split('\n') 
+
+    # Get header and remove it from lines
+    header = lines.pop(0)
+    
+    lines = lines[1:]
+    # Split header into keys
+    keys = header.split(',')
+
+    # Initialize an empty array to store dictionaries
+    data_array = []
+
+    # Iterate over remaining lines to create dictionaries
+    for line in lines:
+        
+        values = line.split(',')
+        data_dict = {}
+        for i, key in enumerate(keys):
+            data_dict[key] = values[i]
+        data_array.append(data_dict)
+
+    
+    return data_array
+
+
 def prompt(query_type, data):
-    API_KEY = os.getenv("OPENAI_API_KEY")
-    print(API_KEY)
-    if not API_KEY:
-        raise ValueError("OpenAI API key not found in environment variables")
+    
+    print(data)
     # Prepare data to send to the OpenAI API
     if query_type == 'summary':
         query = '''
@@ -66,33 +154,29 @@ def prompt(query_type, data):
         In three sentences or less, please provide a recommendation for how I should proceed based on the feedback observed in this post.   
         Do not format it in markdown, only use plain text.
         ''' + data
+        
+        return generate_completion(query)
     elif query_type == 'table':
-        query = """
-        Generate the result in csv format without any explaination. Do not include a header for the data. For each response,
-        column 1:Select one or more key words from the response. If there is more than one key word, seperate them with `&` not commas
-        column 2:Evaluate the sentiment of the response from positive, neutral, or negative
-        column 3:Determine the reaction/emotion
-        column 4:Generate a confidence score in a percentage  
-        column 5:Determine the location of the response from csv data
-        Format the data as Key Words, Sentiment, Reaction/Emotion, Confidence Score, Location
-        Here is an example: `Freedom & Responsibility, Positive, Happy, 100%, City of Burnaby`
-        """ + data
+        count = 0
+        batch_size = 5
+        data_array = csv_to_array(data)
+        num_rows = len(data_array)
+        num_batches = math.ceil(num_rows / batch_size)
+        
+        results = []
+        for i in range(int(num_batches+1)):
+            start_idx = i * batch_size
+            
+            end_idx = min((i + 1) * batch_size, num_rows)
+            print(data_array)
+            batch_data = data_array[start_idx:end_idx]
+            print(batch_data)
+            batch_result = process_batch(batch_data)
+            count += len(batch_result)
+            results.append(batch_result)
     
-    api_url = "https://api.openai.com/v1/chat/completions"
-    headers = {
-        "Authorization": "Bearer {api_key}".format(api_key = API_KEY),  # API key
-        "Content-Type": "application/json",
-    }
-    query_data = {
-    "model": "gpt-3.5-turbo",
-    "messages": [
-        {"role": "system", "content": "You are a helpful assistant."},
-        {"role": "user", "content": query}
-    ],
-    "max_tokens": 4096,
-    }
-
-    return requests.post(api_url, headers=headers, json=query_data)
+    
+    return results
 
 def summary_prompt(csv_data):
     response = prompt('summary', csv_data)
@@ -106,15 +190,15 @@ def table_prompt(csv_data):
     # Loops the prompt untill the returned values pass the data tests
     successful_query = False
     while not successful_query:
-
+        entries = []
+        result = prompt('table', csv_data)
         # Send the request to the OpenAI API
-        response = prompt('table', csv_data)
-        if response.status_code == 200:
-            response_data = response.json()
-            result = response_data.get("choices")[0].get("message").get("content")
-            # Parse the response data into an array of objects where each object is one row in the table
-            entries = []
-            for line in result.strip().split("\n"):
+        
+        for i in range(len(result)):
+        
+        # Parse the response data into an array of objects where each object is one row in the table
+            
+            for line in result[i].strip().split("\n"):
                 parts = line.split(',')
                 try:
                     entry = {
@@ -124,6 +208,7 @@ def table_prompt(csv_data):
                         'ConfidenceScore': parts[3].strip(),
                         'Location': parts[4].strip()  # New column for location
                     }
+                    
                     entries.append(entry)
                 except:
                     break
@@ -131,17 +216,17 @@ def table_prompt(csv_data):
             # Test data to see if resembles our expectations  
             # Test confidence scores ensures that the value associated with the confidence score attribute is an integer between 0 and 100
             # Test sentiment ensures that the value associated with the sentiment attribute is one of ['Positive', 'Neutral', 'Negative'] 
-            # Should either of these tests fail, the prompt is rerun after a short delay    
-            if not(test_confidence(entries) or test_sentiment(entries)):
-                time.sleep(5)
-                continue
-            else:
-                print(entries)
-                successful_query = True
-            
-            return entries
+            # Should either of these tests fail, the prompt is rerun after a short delay 
+        if not(test_confidence(entries) or test_sentiment(entries)):
+            time.sleep(5)
+            continue
         else:
-            return JsonResponse({'error': response.text}, status=response.status_code)
+            print(entries)
+            print("table_prompt done")
+            successful_query = True
+            
+        return entries
+        
 
 def calculate_sentiment_frequencies(entries):
     sentiment_counts = defaultdict(int)
@@ -167,6 +252,7 @@ def calculate_frequencies(entries):
 def generate_analysis(csv_data):
     # Generate and execute the prompt to create the summary and table
     summary_data = summary_prompt(csv_data)
+    print("summary done")
     table_data = table_prompt(csv_data)
 
     # Calculate confidence scores
