@@ -128,7 +128,7 @@ def csv_to_array(csv_data):
 
     # Get header and remove it from lines
     header = lines.pop(0)
-    
+    lines = lines[1:]
     # Split header into keys
     keys = header.split(',')
 
