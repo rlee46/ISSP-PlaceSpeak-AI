@@ -10,7 +10,7 @@
     "sidemenu content content";
 }
 
-@media only screen and (max-width: 700px) {
+@media only screen and (max-width: 770px) {
   .app-container {
     height: 100vh;
     display: grid;
@@ -26,6 +26,7 @@
 
 .app-sidemenu {
   grid-area: sidemenu;
+  height: 100%;
 }
 
 .app-navbar {
@@ -35,5 +36,6 @@
 .app-content {
   grid-area: content;
   background-color: rgb(238, 238, 238);
-  padding: 5%;
+  height: auto;
+  overflow: hidden;
 }
