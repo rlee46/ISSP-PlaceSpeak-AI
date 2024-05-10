@@ -35,7 +35,7 @@ class CSVAnalysisView(APIView):
         try:
             # Decode and load JSON data
             data = json.loads(json_string)
-            
+
         except json.JSONDecodeError as e:
             return Response({'error': 'Invalid JSON: ' + str(e)}, status=400)
 
@@ -139,11 +139,8 @@ def csv_to_array(csv_data):
     for line in lines:
         # Split line into values
         values = line.split(',')
-        
         # Check if the number of values matches the number of keys
-        if len(values) != len(keys):
-            continue  # Skip lines that don't have the correct number of values
-        
+        # Skip lines that don't have the correct number of values
         data_dict = {}
         for i, key in enumerate(keys):
             data_dict[key] = values[i].strip()  # Strip any extra whitespace
@@ -169,7 +166,9 @@ def prompt(query_type, data):
     elif query_type == 'table':
         count = 0
         batch_size = 5
+        
         data_array = csv_to_array(data)
+        
         num_rows = len(data_array)
         num_batches = math.ceil(num_rows / batch_size)
         
@@ -178,6 +177,8 @@ def prompt(query_type, data):
             start_idx = i * batch_size
             end_idx = min((i + 1) * batch_size, num_rows)
             batch_data = data_array[start_idx:end_idx]
+            if(len(batch_data) == 0):
+                break
             print("----------------------------")
             print("Batch Number: "+ str(i))
             batch_result = process_batch(batch_data)
