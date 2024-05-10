@@ -139,8 +139,7 @@ def csv_to_array(csv_data):
     for line in lines:
         # Split line into values
         values = line.split(',')
-        # Check if the number of values matches the number of keys
-        # Skip lines that don't have the correct number of values
+        
         data_dict = {}
         for i, key in enumerate(keys):
             data_dict[key] = values[i].strip()  # Strip any extra whitespace
@@ -171,6 +170,7 @@ def prompt(query_type, data):
         
         num_rows = len(data_array)
         num_batches = math.ceil(num_rows / batch_size)
+        print("number of batches: " + str(num_batches))
         
         results = []
         for i in range(int(num_batches+1)):
