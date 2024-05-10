@@ -1,3 +1,10 @@
+#container {
+  height: 100%;
+  padding: 4%;
+  overflow-y: scroll;
+}
+
 .card {
   margin: 1%;
+  width: -webkit-fill-available;
 }

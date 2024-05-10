@@ -7,11 +7,11 @@ import SideMenu from "./components/SideMenu";
 function App() {
   return (
     <div className="app-container">
+      <div className="app-navbar sticky-top">
+        <Navbar />
+      </div>
       <div className="app-sidemenu">
         <SideMenu />
-      </div>
-      <div className="app-navbar">
-        <Navbar />
       </div>
       <div className="app-content">
         <Analyzer />

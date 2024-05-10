@@ -14,7 +14,7 @@
   display: none;
 }
 
-@media only screen and (max-width: 700px) {
+@media only screen and (max-width: 770px) {
   .navbar-container {
     display: grid;
     grid-template-columns: 50px 1fr 1fr;
@@ -50,12 +50,14 @@
   color: #333;
   font-size: 22px;
   padding: 0 3% 0 3%;
+  background-color: white;
 }
 
 .buttons {
   grid-area: buttons;
   text-align: end;
   align-content: center;
+  background-color: white;
 }
 
 .buttons .btn {

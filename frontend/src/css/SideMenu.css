@@ -8,7 +8,7 @@
   grid-template-areas: "sidebar menu";
 }
 
-@media only screen and (max-width: 700px) {
+@media only screen and (max-width: 770px) {
   .sidebar-container {
     display: grid;
     width: 290px;
