@@ -43,8 +43,8 @@ class DataProcessorFactory:
     def get_processor(self, data_type):
         if data_type == "discussion":
             return DiscussionDataProcessor(self.openai_client, self.helper, self.test)
-        # elif data_type == "survey":
-        #     return SurveyDataProcessor(self.openai_client, self.helper)
+        elif data_type == "survey":
+            return DiscussionDataProcessor(self.openai_client, self.helper, self.test)
         else:
             raise ValueError("Unsupported data type: {data_type}")
 
