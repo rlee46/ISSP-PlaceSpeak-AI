@@ -1,8 +1,14 @@
+/* eslint-disable jsx-a11y/anchor-is-valid */
 import locale from "../../locale/en.json";
 import { useState } from "react";
+import "bootstrap";
 
 function FileHandler({ onData }) {
+  //For server response data
   const [data, setData] = useState("");
+
+  //Two types: 'discussion' & 'survey'
+  const [fileType, setFileType] = useState("discussion");
 
   //Handle upload button click event
   const handleUpload = () => {
@@ -17,14 +23,23 @@ function FileHandler({ onData }) {
     const reader = new FileReader();
     reader.onload = (event) => {
       const text = event.target.result;
-      upload(text);
+      if (fileType === "discussion") {
+        discussionAnalysis(text);
+      } else if (fileType === "survey") {
+        surveyAnalysis(text);
+      } else {
+        alert(locale.error);
+      }
     };
     reader.readAsText(fileInput.files[0]);
   };
 
-  //Upload CSV data to server
-  const upload = (text) => {
-    const url = "http://localhost:8080/analyze/";
+  //Upload survey CSV data to server
+  const surveyAnalysis = (text) => {};
+
+  //Upload discussion CSV data to server
+  const discussionAnalysis = (text) => {
+    const url = "http://localhost:8080/discussion/";
     const params = new URLSearchParams();
     params.append("_content", JSON.stringify({ csv_data: text }));
 
@@ -83,7 +98,12 @@ function FileHandler({ onData }) {
 
   return (
     <>
-      <h2>{locale.componentheader}</h2>
+      <h2>
+        {fileType.charAt(0).toUpperCase() +
+          fileType.slice(1) +
+          " " +
+          locale.componentheader}
+      </h2>
       <form className="d-flex flex-wrap mb-3">
         <div className="p-2 flex-grow-1">
           <input
@@ -94,6 +114,39 @@ function FileHandler({ onData }) {
             required
           />
         </div>
+
+        <div className="p-2">
+          <div className="btn-group">
+            <button
+              className="btn btn-secondary btn-sm dropdown-toggle"
+              type="button"
+              data-bs-toggle="dropdown"
+              aria-expanded="false"
+            >
+              {fileType.charAt(0).toUpperCase() + fileType.slice(1)}
+            </button>
+            <ul className="dropdown-menu">
+              <li>
+                <a
+                  className="dropdown-item"
+                  onClick={() => setFileType("discussion")}
+                  href="#"
+                >
+                  {locale.discussion}
+                </a>
+              </li>
+              <li>
+                <a
+                  className="dropdown-item"
+                  onClick={() => setFileType("survey")}
+                  href="#"
+                >
+                  {locale.survey}
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
         <div className="p-2">
           <button
             type="button"
@@ -101,15 +154,6 @@ function FileHandler({ onData }) {
             onClick={handleUpload}
           >
             {locale.uploadLabel}
-          </button>
-        </div>
-        <div className="p-2">
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={handleUpload}
-          >
-            {locale.regenerateLabel}
           </button>
         </div>
         <div className="p-2">
