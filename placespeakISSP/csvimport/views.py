@@ -81,7 +81,6 @@ class CSVSurveyAnalysisView(APIView):
 
         # Access the 'csv_data' key safely
         csv_data = data.get('csv_data')
-        print("CSV Data", csv_data)
         if not csv_data:
             # Check if there's any key with 'csv_data' substring
             for key in data.keys():
@@ -94,6 +93,7 @@ class CSVSurveyAnalysisView(APIView):
 
         try:
             result = processor.separate_columns(csv_data)
+            processed_quesitons = processor.process_questions(result)
             return Response(result, status=200)
         except Exception as e:
             logging.error("Error processing CSV data: {}".format(e))
