@@ -1,13 +1,16 @@
 {
-  "componentheader": "Results",
+  "componentheader": "Report",
   "summaryHeader": "Summary",
   "fileSelectLabel": "Choose File",
-  "uploadLabel": "Upload and Analyze Text/CSV",
+  "uploadLabel": "Upload and Analyze",
   "regenerateLabel": "Regenerate",
   "noFileSelected": "No file selected",
   "noFileAnalyzed": "No file analyzed",
   "selectFileFirst": "Please select a file first!",
   "uploadFileFirst": "Please upload first!",
+  "discussion": "Discussion",
+  "error": "Internal Error!",
+  "survey": "Survey",
   "table": {
     "keyPhrase": "Key Phrase",
     "sentiment": "Sentiment",
