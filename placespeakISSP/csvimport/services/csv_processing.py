@@ -230,8 +230,7 @@ class SurveyDataProcessor:
 
     def separate_columns(self, csv_data):
         csv_string = csv_data.encode('utf-8')
-        print(csv_string)
-        csv_string = csv_data['csv_data']
+        
         csv_reader = csv.DictReader(csv_string.splitlines())
         fieldnames = csv_reader.fieldnames
         if fieldnames is None:
@@ -249,5 +248,21 @@ class SurveyDataProcessor:
                 json_object[col].append(row[col])
 
         return json.dumps(json_object, indent=2)
+    
+    def process_questions(self, questions):
+        data = json.loads(questions)
+        keys = data.keys()
+        
+        for key in keys:
+            cleaned_string = key.replace(u'\ufeff', '')
+            analyze_question(cleaned_string, data.get(cleaned_string))
+
+
+    def analyze_question(self, key, value):
+        print(key)
+        print(value)
+
+
+        
 
     
