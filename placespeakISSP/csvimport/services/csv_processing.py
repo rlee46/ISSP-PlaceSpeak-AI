@@ -7,6 +7,8 @@ import time
 from collections import defaultdict
 from rest_framework.response import Response
 
+import threading
+
 from ..utilities.helpers import HelperFunctions
 from ..tests.test_functions import TestFunctions
 from ..serializer import AnalysisDataSerializer
@@ -120,8 +122,52 @@ class DiscussionDataProcessor:
 
         return [score_bins[bin] for bin in bins]
     
-    def prompt(self, query_type, data):
+    # def prompt(self, query_type, data):
+          #start_time = time.time()
+    #     # Prepare data to send to the OpenAI API
+    #     if query_type == 'summary':
+    #         query = '''
+    #         I am a government  official who is looking to make a decision based on the input of my community. 
+    #         The following data is sourced from a discussion post where members of my community discussed their views on the topic.
+    #         Please generate a 5 to 10 sentence summary that I can use to communicate their feelings to my colleagues and other policy makers.
+    #         In three sentences or less, please provide a recommendation for how I should proceed based on the feedback observed in this post.   
+    #         Do not format it in markdown, only use plain text.
+    #         ''' + data
+        
+    #         return self.openai_client.generate_completion(query)
+    #     elif query_type == 'table':
+    #         count = 0
+    #         batch_size = 5
+        
+    #         data_array = self.helper.csv_to_array(data)
+        
+    #         num_rows = len(data_array)
+    #         num_batches = math.ceil(num_rows / batch_size)
+    #         print("number of batches: " + str(num_batches))
+        
+    #         results = []
+    #         for i in range(int(num_batches+1)):
+    #             start_idx = i * batch_size
+    #             end_idx = min((i + 1) * batch_size, num_rows)
+    #             batch_data = data_array[start_idx:end_idx]
+    #             if(len(batch_data) == 0):
+    #                 break
+    #             print("----------------------------")
+    #             print("Batch Number: "+ str(i))
+    #             batch_result = self.process_batch(batch_data)
+    #             print(batch_result)
+    #             row_result = self.helper.count_csv_rows(batch_result)
+    #             print("result row:", row_result)
+    #             print("----------------------------")
+    #             count += row_result
+    #             results.append(batch_result)
+    #     end_time = time.time()  # End timing
+    #     print("Total processing time: {:.2f} seconds".format(end_time - start_time))
+    #     print("Total Lines: " + str(count))
+    #     return results
     
+    def prompt(self, query_type, data):
+        start_time = time.time()
         # Prepare data to send to the OpenAI API
         if query_type == 'summary':
             query = '''
@@ -134,34 +180,37 @@ class DiscussionDataProcessor:
         
             return self.openai_client.generate_completion(query)
         elif query_type == 'table':
-            count = 0
-            batch_size = 5
-        
             data_array = self.helper.csv_to_array(data)
-        
             num_rows = len(data_array)
-            num_batches = math.ceil(num_rows / batch_size)
-            print("number of batches: " + str(num_batches))
-        
+            batch_size = 5
+            num_batches = math.ceil(num_rows / float(batch_size))
+            
             results = []
+            threads = []
+            results_lock = threading.Lock()
+            
+            def handle_batch(start_idx, end_idx):
+                batch_data = data_array[start_idx:end_idx]
+                if batch_data:
+                    batch_result = self.process_batch(batch_data)
+                    with results_lock:
+                        results.append(batch_result)
+            
             for i in range(int(num_batches+1)):
                 start_idx = i * batch_size
                 end_idx = min((i + 1) * batch_size, num_rows)
-                batch_data = data_array[start_idx:end_idx]
-                if(len(batch_data) == 0):
-                    break
-                print("----------------------------")
-                print("Batch Number: "+ str(i))
-                batch_result = self.process_batch(batch_data)
-                print(batch_result)
-                row_result = self.helper.count_csv_rows(batch_result)
-                print("result row:", row_result)
-                print("----------------------------")
-                count += row_result
-                results.append(batch_result)
-    
-        print("Total Lines: " + str(count))
-        return results
+                thread = threading.Thread(target=handle_batch, args=(start_idx, end_idx))
+                threads.append(thread)
+                thread.start()
+            
+            # Wait for all threads to complete
+            for thread in threads:
+                thread.join()
+
+            end_time = time.time()  # End timing
+            print("Total processing time: {:.2f} seconds".format(end_time - start_time))
+            # Combine results and any other post-threading processing
+            return results
 
     def summary_prompt(self, csv_data):
         response = self.prompt('summary', csv_data)
