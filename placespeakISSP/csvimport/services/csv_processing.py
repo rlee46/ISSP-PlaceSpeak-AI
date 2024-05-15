@@ -260,10 +260,26 @@ class SurveyDataProcessor:
 
 
     def analyze_question(self, key, value):
+        print("QUESTION TYPE: ", self.determine_question_type(value))
         print(key)
         print(value)
 
+    def determine_question_type(self,answers):
+        mcq_count = 0
+        long_text_count = 0
 
+        for answer in answers:
+            if len(answer) > 10:
+                long_text_count += 1
+            else:
+                mcq_count += 1
+
+        if long_text_count > 0:
+            return "Long Text"
+        elif mcq_count > 0:
+            return "MCQ"
+        else:
+            return "Uncertain"
         
 
     
