@@ -246,7 +246,6 @@ class SurveyDataProcessor:
         for row in csv_reader:
             for col in columns_to_keep:
                 json_object[col].append(row[col])
-
         return json.dumps(json_object, indent=2)
     
     def process_questions(self, questions):
@@ -255,7 +254,9 @@ class SurveyDataProcessor:
         
         for key in keys:
             cleaned_string = key.replace(u'\ufeff', '')
-            analyze_question(cleaned_string, data.get(cleaned_string))
+            value = data.get(key)
+            cleaned_value = [v.replace(u'\ufeff', '') for v in value]
+            self.analyze_question(cleaned_string, cleaned_value)
 
 
     def analyze_question(self, key, value):
