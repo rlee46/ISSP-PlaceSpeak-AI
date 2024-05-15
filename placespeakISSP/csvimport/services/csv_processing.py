@@ -6,6 +6,7 @@ import math
 import time
 from collections import defaultdict
 from rest_framework.response import Response
+from multiprocessing.pool import ThreadPool
 
 from ..utilities.helpers import HelperFunctions
 from ..tests.test_functions import TestFunctions
@@ -125,10 +126,104 @@ class DiscussionDataProcessor:
     
 
 
-    def prompt(self, query_type, data):
+#     def prompt(self, query_type, data):
     
-        # Prepare data to send to the OpenAI API
-        if query_type == 'summary':
+#         # Prepare data to send to the OpenAI API
+#         if query_type == 'summary':
+#             query = '''
+#             I am a government  official who is looking to make a decision based on the input of my community. 
+#             The following data is sourced from a discussion post where members of my community discussed their views on the topic.
+#             Please generate a 5 to 10 sentence summary that I can use to communicate their feelings to my colleagues and other policy makers.
+#             In three sentences or less, please provide a recommendation for how I should proceed based on the feedback observed in this post.   
+#             Do not format it in markdown, only use plain text.
+#             ''' + data
+        
+#             return self.openai_client.generate_completion(query)
+#         elif query_type == 'table':
+#             start_time = time.time()
+#             count = 0
+#             batch_number = 0
+#             token_limit = 3000
+#             data_array = self.helper.csv_to_array(data)
+#             print("array made")
+#             batch_size = 5
+#             results = []
+#             current_batch = []
+#             num_rows = len(data_array)
+#             num_batches = math.ceil(num_rows / batch_size)
+#             print("number of batches: " + str(num_batches))
+        
+#             results = []
+
+#             for row in data_array:
+#         # Calculate the number of tokens in the current row
+#                 row_tokens = self.helper.num_tokens(str(row))
+#         # Check if adding this row exceeds the token limit
+#                 if count + row_tokens <= token_limit:
+#                     current_batch.append(row)
+#                     count += row_tokens
+#                 else:
+#             # Process the current batch
+#                     print("--------------------------------------------------------")
+#                     print("Batch Number: " + str(batch_number))
+#                     batch_number += 1
+#                     print("Num Tokens: " + str(count))
+#                     print("Num of input rows: " + str(len(current_batch)))
+#                     batch_result = self.process_batch(current_batch)
+#                     print("--------------------------------------------------------")
+#                     results.append(batch_result)
+        
+#         # Reset count and current batch
+#                     count = row_tokens
+#                     current_batch = [row]
+
+# # Process the remaining batch if any
+#             if current_batch:
+#                 print("--------------------------------------------------------")
+#                 print("Batch Number: " + str(batch_number))
+#                 batch_number += 1
+#                 print("Num Tokens: " + str(count))
+#                 print("Num of input rows: " + str(len(current_batch)))
+#                 batch_result = self.process_batch(current_batch)
+#                 print("--------------------------------------------------------")
+#                 results.append(batch_result)
+
+#         end_time = time.time()  # End timing
+#         print("Total processing time: {:.2f} seconds".format(end_time - start_time))
+#         return results
+    
+    def prompt(self, query_type, data):
+        if query_type == 'table':
+            start_time = time.time()
+            data_array = self.helper.csv_to_array(data)
+            token_limit = 3000
+            current_batch = []
+            count = 0
+            batches = []
+            
+            # Organize data into batches considering the token limit
+            for row in data_array:
+                row_tokens = self.helper.num_tokens(str(row))
+                if count + row_tokens <= token_limit:
+                    current_batch.append(row)
+                    count += row_tokens
+                else:
+                    batches.append(current_batch)
+                    current_batch = [row]
+                    count = row_tokens
+            if current_batch:
+                batches.append(current_batch)
+            
+            results = []
+            # Use ThreadPool to process batches concurrently
+            pool = ThreadPool(processes=5)
+            results = pool.map(self.process_batch, batches)
+            pool.close()
+            pool.join()
+            end_time = time.time()  # End timing
+            print("Total processing time: {:.2f} seconds".format(end_time - start_time))
+            return results
+        elif query_type == 'summary':
             query = '''
             I am a government  official who is looking to make a decision based on the input of my community. 
             The following data is sourced from a discussion post where members of my community discussed their views on the topic.
@@ -138,57 +233,6 @@ class DiscussionDataProcessor:
             ''' + data
         
             return self.openai_client.generate_completion(query)
-        elif query_type == 'table':
-            
-            count = 0
-            batch_number = 0
-            token_limit = 3000
-            data_array = self.helper.csv_to_array(data)
-            print("array made")
-            batch_size = 5
-            results = []
-            current_batch = []
-            num_rows = len(data_array)
-            num_batches = math.ceil(num_rows / batch_size)
-            print("number of batches: " + str(num_batches))
-        
-            results = []
-
-            for row in data_array:
-        # Calculate the number of tokens in the current row
-                row_tokens = self.helper.num_tokens(str(row))
-        # Check if adding this row exceeds the token limit
-                if count + row_tokens <= token_limit:
-                    current_batch.append(row)
-                    count += row_tokens
-                else:
-            # Process the current batch
-                    print("--------------------------------------------------------")
-                    print("Batch Number: " + str(batch_number))
-                    batch_number += 1
-                    print("Num Tokens: " + str(count))
-                    print("Num of input rows: " + str(len(current_batch)))
-                    batch_result = self.process_batch(current_batch)
-                    print("--------------------------------------------------------")
-                    results.append(batch_result)
-        
-        # Reset count and current batch
-                    count = row_tokens
-                    current_batch = [row]
-
-# Process the remaining batch if any
-            if current_batch:
-                print("--------------------------------------------------------")
-                print("Batch Number: " + str(batch_number))
-                batch_number += 1
-                print("Num Tokens: " + str(count))
-                print("Num of input rows: " + str(len(current_batch)))
-                batch_result = self.process_batch(current_batch)
-                print("--------------------------------------------------------")
-                results.append(batch_result)
-
-        
-        return results
 
     def summary_prompt(self, csv_data):
         response = self.prompt('summary', csv_data)
