@@ -6,8 +6,7 @@ import math
 import time
 from collections import defaultdict
 from rest_framework.response import Response
-
-import threading
+from multiprocessing.pool import ThreadPool
 
 from ..utilities.helpers import HelperFunctions
 from ..tests.test_functions import TestFunctions
@@ -57,59 +56,31 @@ class DiscussionDataProcessor:
         self.tester = tester
 
     def process_batch(self, batch_data):
-        valid_result = False
-        result = ""
         resultCount = 0
-        row_count = len(batch_data)
+        result = ""
         batch_data_str = str(batch_data)
-
-        while not valid_result:
-            # Construct the query
+        row_count = len(batch_data)
+        print("--------BATCH--------------")
+        print("ROW COUNT: " + str(row_count))
+        while(resultCount != row_count):
+        # Construct the query
             query = """
             Generate the result in csv format without any explanation. Do not include a header for the data. For each response,
             column 1: Select one or more keywords from the response. If there is more than one keyword, separate them with `&` not commas
             column 2: Evaluate the sentiment of the response from positive, neutral, or negative
             column 3: Determine the reaction/emotion
             column 4: Generate a confidence score in a percentage
-            column 5: Determine the location of the response from csv data
+            column 5:Determine the location of the response from csv data
             Format the data as Key Words, Sentiment, Reaction/Emotion, Confidence Score, Location
-            Here is an example: `Freedom & Responsibility, Positive, Happy, 100%, City of Burnaby`
-            Note: The last number is the rows. Return the same number of rows in response
-            """ + batch_data_str + " ROWS: " + str(row_count)  # Concatenate batch_data_str
-            response = self.openai_client.generate_completion(query).json()
-
-            if response['choices']:
-                result = response['choices'][0]['message']['content']
-                resultCount = self.helper.count_csv_rows(result)
-
-                if resultCount == row_count:
-                    # Parse result and validate entries
-                    batch_entries = []
-                    for line in result.strip().split("\n"):
-                        parts = line.split(',')
-                        try:
-                            entry = {
-                                'KeyPhrases': parts[0].strip(),
-                                'Sentiment': parts[1].strip(),
-                                'ReactionEmotion': parts[2].strip(),
-                                'ConfidenceScore': parts[3].strip(),
-                                'Location': parts[4].strip()
-                            }
-                            batch_entries.append(entry)
-                        except IndexError:
-                            continue
-
-                    if self.tester.test_confidence(batch_entries) and self.tester.test_sentiment(batch_entries):
-                        valid_result = True  # Validated successfully
-                    else:
-                        print("Validation failed, rerunning...")
-                        time.sleep(5)  # Short delay before retry
-                else:
-                    print("Incorrect number of rows, rerunning...")
-            else:
-                print("API call failed or returned no choices, rerunning...")
-                time.sleep(5)  # Short delay before retry
-
+            Here is an example: `Freedom & Responsibility, Positive, Happy, 100%, City of Burnaby
+            Note: The last number is the rows. Return the same number of rows in response`
+            """ + batch_data_str + " ROWS: " + str(row_count)   # Concatenate batch_data_str
+            result =  self.openai_client.generate_completion(query).json().get("choices")[0].get("message").get("content")
+            resultCount = self.helper.count_csv_rows(result)
+            if resultCount != row_count: 
+                    print("RERUNNING: Incorrect number of ROWS")
+        print(result)
+        print("RESULT COUNT: " + str(resultCount))
         return result
 
     def generate_analysis(self, csv_data):
@@ -155,10 +126,104 @@ class DiscussionDataProcessor:
     
 
 
+#     def prompt(self, query_type, data):
+    
+#         # Prepare data to send to the OpenAI API
+#         if query_type == 'summary':
+#             query = '''
+#             I am a government  official who is looking to make a decision based on the input of my community. 
+#             The following data is sourced from a discussion post where members of my community discussed their views on the topic.
+#             Please generate a 5 to 10 sentence summary that I can use to communicate their feelings to my colleagues and other policy makers.
+#             In three sentences or less, please provide a recommendation for how I should proceed based on the feedback observed in this post.   
+#             Do not format it in markdown, only use plain text.
+#             ''' + data
+        
+#             return self.openai_client.generate_completion(query)
+#         elif query_type == 'table':
+#             start_time = time.time()
+#             count = 0
+#             batch_number = 0
+#             token_limit = 3000
+#             data_array = self.helper.csv_to_array(data)
+#             print("array made")
+#             batch_size = 5
+#             results = []
+#             current_batch = []
+#             num_rows = len(data_array)
+#             num_batches = math.ceil(num_rows / batch_size)
+#             print("number of batches: " + str(num_batches))
+        
+#             results = []
+
+#             for row in data_array:
+#         # Calculate the number of tokens in the current row
+#                 row_tokens = self.helper.num_tokens(str(row))
+#         # Check if adding this row exceeds the token limit
+#                 if count + row_tokens <= token_limit:
+#                     current_batch.append(row)
+#                     count += row_tokens
+#                 else:
+#             # Process the current batch
+#                     print("--------------------------------------------------------")
+#                     print("Batch Number: " + str(batch_number))
+#                     batch_number += 1
+#                     print("Num Tokens: " + str(count))
+#                     print("Num of input rows: " + str(len(current_batch)))
+#                     batch_result = self.process_batch(current_batch)
+#                     print("--------------------------------------------------------")
+#                     results.append(batch_result)
+        
+#         # Reset count and current batch
+#                     count = row_tokens
+#                     current_batch = [row]
+
+# # Process the remaining batch if any
+#             if current_batch:
+#                 print("--------------------------------------------------------")
+#                 print("Batch Number: " + str(batch_number))
+#                 batch_number += 1
+#                 print("Num Tokens: " + str(count))
+#                 print("Num of input rows: " + str(len(current_batch)))
+#                 batch_result = self.process_batch(current_batch)
+#                 print("--------------------------------------------------------")
+#                 results.append(batch_result)
+
+#         end_time = time.time()  # End timing
+#         print("Total processing time: {:.2f} seconds".format(end_time - start_time))
+#         return results
+    
     def prompt(self, query_type, data):
-        start_time = time.time()
-        # Prepare data to send to the OpenAI API
-        if query_type == 'summary':
+        if query_type == 'table':
+            start_time = time.time()
+            data_array = self.helper.csv_to_array(data)
+            token_limit = 3000
+            current_batch = []
+            count = 0
+            batches = []
+            
+            # Organize data into batches considering the token limit
+            for row in data_array:
+                row_tokens = self.helper.num_tokens(str(row))
+                if count + row_tokens <= token_limit:
+                    current_batch.append(row)
+                    count += row_tokens
+                else:
+                    batches.append(current_batch)
+                    current_batch = [row]
+                    count = row_tokens
+            if current_batch:
+                batches.append(current_batch)
+            
+            results = []
+            # Use ThreadPool to process batches concurrently
+            pool = ThreadPool(processes=5)
+            results = pool.map(self.process_batch, batches)
+            pool.close()
+            pool.join()
+            end_time = time.time()  # End timing
+            print("Total processing time: {:.2f} seconds".format(end_time - start_time))
+            return results
+        elif query_type == 'summary':
             query = '''
             I am a government  official who is looking to make a decision based on the input of my community. 
             The following data is sourced from a discussion post where members of my community discussed their views on the topic.
@@ -168,60 +233,6 @@ class DiscussionDataProcessor:
             ''' + data
         
             return self.openai_client.generate_completion(query)
-        elif query_type == 'table':
-            
-            count = 0
-            batch_number = 0
-            token_limit = 3000
-            data_array = self.helper.csv_to_array(data)
-            print("array made")
-            batch_size = 5
-            results = []
-            current_batch = []
-            num_rows = len(data_array)
-            batch_size = 5
-            num_batches = math.ceil(num_rows / float(batch_size))
-            print("number of batches: " + str(num_batches))
-        
-            results = []
-
-            for row in data_array:
-        # Calculate the number of tokens in the current row
-                row_tokens = self.helper.num_tokens(str(row))
-        # Check if adding this row exceeds the token limit
-                if count + row_tokens <= token_limit:
-                    current_batch.append(row)
-                    count += row_tokens
-                else:
-            # Process the current batch
-                    print("--------------------------------------------------------")
-                    print("Batch Number: " + str(batch_number))
-                    batch_number += 1
-                    print("Num Tokens: " + str(count))
-                    print("Num of input rows: " + str(len(current_batch)))
-                    batch_result = self.process_batch(current_batch)
-                    print("--------------------------------------------------------")
-                    results.append(batch_result)
-        
-        # Reset count and current batch
-                    count = row_tokens
-                    current_batch = [row]
-
-# Process the remaining batch if any
-            if current_batch:
-                print("--------------------------------------------------------")
-                print("Batch Number: " + str(batch_number))
-                batch_number += 1
-                print("Num Tokens: " + str(count))
-                print("Num of input rows: " + str(len(current_batch)))
-                batch_result = self.process_batch(current_batch)
-                print("--------------------------------------------------------")
-                results.append(batch_result)
-
-        
-        return results
-    
-
 
     def summary_prompt(self, csv_data):
         response = self.prompt('summary', csv_data)
@@ -233,35 +244,42 @@ class DiscussionDataProcessor:
 
     def table_prompt(self, csv_data):
         # Loops the prompt untill the returned values pass the data tests
-        entries = []
-        result = self.prompt('table', csv_data)
-        # Send the request to the OpenAI API
+        successful_query = False
+        while not successful_query:
+            entries = []
+            result = self.prompt('table', csv_data)
+            # Send the request to the OpenAI API
         
-        for i in range(len(result)):
+            for i in range(len(result)):
         
-        # Parse the response data into an array of objects where each object is one row in the table
+            # Parse the response data into an array of objects where each object is one row in the table
             
-            for line in result[i].strip().split("\n"):
-                parts = line.split(',')
-                try:
-                    entry = {
-                        'KeyPhrases': parts[0].strip(),
-                        'Sentiment': parts[1].strip(),
-                        'ReactionEmotion': parts[2].strip(),
-                        'ConfidenceScore': parts[3].strip(),
-                        'Location': parts[4].strip()  # New column for location
-                    }
+                for line in result[i].strip().split("\n"):
+                    parts = line.split(',')
+                    try:
+                        entry = {
+                            'KeyPhrases': parts[0].strip(),
+                            'Sentiment': parts[1].strip(),
+                            'ReactionEmotion': parts[2].strip(),
+                            'ConfidenceScore': parts[3].strip(),
+                            'Location': parts[4].strip()  # New column for location
+                        }
                     
-                    entries.append(entry)
-                except:
-                    break
+                        entries.append(entry)
+                    except:
+                        break
 
-            # Test data to see if resembles our expectations  
-            # Test confidence scores ensures that the value associated with the confidence score attribute is an integer between 0 and 100
-            # Test sentiment ensures that the value associated with the sentiment attribute is one of ['Positive', 'Neutral', 'Negative'] 
-            # Should either of these tests fail, the prompt is rerun after a short delay 
-        print(entries)
-        print("table_prompt done")
+                # Test data to see if resembles our expectations  
+                # Test confidence scores ensures that the value associated with the confidence score attribute is an integer between 0 and 100
+                # Test sentiment ensures that the value associated with the sentiment attribute is one of ['Positive', 'Neutral', 'Negative'] 
+                # Should either of these tests fail, the prompt is rerun after a short delay 
+            if not(self.tester.test_confidence(entries) or self.tester.test_sentiment(entries)):
+                time.sleep(5)
+                continue
+            else:
+                print(entries)
+                print("table_prompt done")
+                successful_query = True
             
         return entries
 
