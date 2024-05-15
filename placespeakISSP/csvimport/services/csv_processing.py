@@ -4,6 +4,7 @@ import json
 import requests
 import math
 import time
+import csv
 from collections import defaultdict
 from rest_framework.response import Response
 
@@ -44,7 +45,7 @@ class DataProcessorFactory:
         if data_type == "discussion":
             return DiscussionDataProcessor(self.openai_client, self.helper, self.test)
         elif data_type == "survey":
-            return DiscussionDataProcessor(self.openai_client, self.helper, self.test)
+            return SurveyDataProcessor(self.openai_client, self.helper, self.test)
         else:
             raise ValueError("Unsupported data type: {data_type}")
 
@@ -219,3 +220,34 @@ class DiscussionDataProcessor:
         Provide a summary in 5-10 sentences and a 3-sentence recommendation.
         {data}
         """
+    
+#Survey Processing
+class SurveyDataProcessor:
+    def __init__(self, openai_client, helper, tester):
+        self.openai_client = openai_client
+        self.helper = helper
+        self.tester = tester
+
+    def separate_columns(self, csv_data):
+        csv_string = csv_data.encode('utf-8')
+        print(csv_string)
+        csv_string = csv_data['csv_data']
+        csv_reader = csv.DictReader(csv_string.splitlines())
+        fieldnames = csv_reader.fieldnames
+        if fieldnames is None:
+            raise ValueError("Fieldnames could not be extracted from CSV data.")
+
+        # Determine columns to keep (from 8 to the second last column)
+        columns_to_keep = fieldnames[7:-1]
+
+        # Initialize a dictionary to store the JSON object
+        json_object = {col: [] for col in columns_to_keep}
+
+        # Process each row in the CSV
+        for row in csv_reader:
+            for col in columns_to_keep:
+                json_object[col].append(row[col])
+
+        return json.dumps(json_object, indent=2)
+
+    
