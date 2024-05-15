@@ -59,6 +59,8 @@ class DiscussionDataProcessor:
         result = ""
         batch_data_str = str(batch_data)
         row_count = len(batch_data)
+        print("--------BATCH--------------")
+        print("ROW COUNT: " + str(row_count))
         while(resultCount != row_count):
         # Construct the query
             query = """
@@ -74,9 +76,10 @@ class DiscussionDataProcessor:
             """ + batch_data_str + " ROWS: " + str(row_count)   # Concatenate batch_data_str
             result =  self.openai_client.generate_completion(query).json().get("choices")[0].get("message").get("content")
             resultCount = self.helper.count_csv_rows(result)
-            if resultCount !=row_count: 
+            if resultCount != row_count: 
                     print("RERUNNING: Incorrect number of ROWS")
-        
+        print(result)
+        print("RESULT COUNT: " + str(resultCount))
         return result
 
     def generate_analysis(self, csv_data):
@@ -120,6 +123,8 @@ class DiscussionDataProcessor:
 
         return [score_bins[bin] for bin in bins]
     
+
+
     def prompt(self, query_type, data):
     
         # Prepare data to send to the OpenAI API
@@ -134,33 +139,55 @@ class DiscussionDataProcessor:
         
             return self.openai_client.generate_completion(query)
         elif query_type == 'table':
+            
             count = 0
-            batch_size = 5
-        
+            batch_number = 0
+            token_limit = 3000
             data_array = self.helper.csv_to_array(data)
-        
+            print("array made")
+            batch_size = 5
+            results = []
+            current_batch = []
             num_rows = len(data_array)
             num_batches = math.ceil(num_rows / batch_size)
             print("number of batches: " + str(num_batches))
         
             results = []
-            for i in range(int(num_batches+1)):
-                start_idx = i * batch_size
-                end_idx = min((i + 1) * batch_size, num_rows)
-                batch_data = data_array[start_idx:end_idx]
-                if(len(batch_data) == 0):
-                    break
-                print("----------------------------")
-                print("Batch Number: "+ str(i))
-                batch_result = self.process_batch(batch_data)
-                print(batch_result)
-                row_result = self.helper.count_csv_rows(batch_result)
-                print("result row:", row_result)
-                print("----------------------------")
-                count += row_result
+
+            for row in data_array:
+        # Calculate the number of tokens in the current row
+                row_tokens = self.helper.num_tokens(str(row))
+        # Check if adding this row exceeds the token limit
+                if count + row_tokens <= token_limit:
+                    current_batch.append(row)
+                    count += row_tokens
+                else:
+            # Process the current batch
+                    print("--------------------------------------------------------")
+                    print("Batch Number: " + str(batch_number))
+                    batch_number += 1
+                    print("Num Tokens: " + str(count))
+                    print("Num of input rows: " + str(len(current_batch)))
+                    batch_result = self.process_batch(current_batch)
+                    print("--------------------------------------------------------")
+                    results.append(batch_result)
+        
+        # Reset count and current batch
+                    count = row_tokens
+                    current_batch = [row]
+
+# Process the remaining batch if any
+            if current_batch:
+                print("--------------------------------------------------------")
+                print("Batch Number: " + str(batch_number))
+                batch_number += 1
+                print("Num Tokens: " + str(count))
+                print("Num of input rows: " + str(len(current_batch)))
+                batch_result = self.process_batch(current_batch)
+                print("--------------------------------------------------------")
                 results.append(batch_result)
-    
-        print("Total Lines: " + str(count))
+
+        
         return results
 
     def summary_prompt(self, csv_data):

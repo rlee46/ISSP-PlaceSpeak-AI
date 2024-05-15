@@ -48,7 +48,8 @@ class CSVAnalysisView(APIView):
             processor = factory.get_processor(data_type)
         except ValueError as e:
             return Response({'error': str(e)}, status=400)
-
+        
+        print(data.get('csv_data'))
         serializer = CSVUploadSerializer(data=data)
         if serializer.is_valid():
             csv_data = serializer.validated_data['csv_data']
@@ -58,11 +59,7 @@ class CSVAnalysisView(APIView):
         return analysis
         
 
-#estimate number of tokens in the payload
-def num_tokens(data):
-    pattern = r'\w+|[^\w\s]'
-    tokens = re.findall(pattern, data)
-    return len(tokens)
+
 
 
 
