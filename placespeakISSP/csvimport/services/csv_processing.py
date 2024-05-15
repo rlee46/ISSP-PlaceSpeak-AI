@@ -249,18 +249,45 @@ class SurveyDataProcessor:
 
         return json.dumps(json_object, indent=2)
     
+    def analyze_question(self, key, value):
+        print(key)
+        try:
+            print("Question TYPE: ", self.determine_question_type(value))
+        except Exception as e:
+            print(e)
+        
+        print(value)
+        query = """
+        
+        """
+        
+
     def process_questions(self, questions):
         data = json.loads(questions)
         keys = data.keys()
-        
         for key in keys:
             cleaned_string = key.replace(u'\ufeff', '')
-            analyze_question(cleaned_string, data.get(cleaned_string))
+            self.analyze_question(cleaned_string, data.get(key))
+
+    def determine_question_type(self,answers):
+        mcq_count = 0
+        long_text_count = 0
+
+        for answer in answers:
+            if len(answer) > 10:
+                long_text_count += 1
+            else:
+                mcq_count += 1
+
+        if long_text_count > 0:
+            return "Long Text"
+        elif mcq_count > 0:
+            return "MCQ"
+        else:
+            return "Uncertain"
 
 
-    def analyze_question(self, key, value):
-        print(key)
-        print(value)
+    
 
 
         
