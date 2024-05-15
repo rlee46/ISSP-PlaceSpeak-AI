@@ -2,12 +2,37 @@ import locale from "../../locale/en.json";
 import ConfidenceBarChart from "./ConfidenceBarChart";
 import PieChart from "./PieChart";
 
-function Result({ summary }) {
-  if (!summary) {
+function Result({ summary, isLoading }) {
+  if (!summary && !isLoading) {
     return (
       <>
         <h2>{locale.summaryHeader}</h2>
         <p>{locale.noFileAnalyzed}</p>
+      </>
+    );
+  }
+
+  if (!summary && isLoading) {
+    return (
+      <>
+        <h2>{locale.summaryHeader}</h2>
+        <div className="loading-indicator">
+          <p className="placeholder-wave">
+            <span className="placeholder col-12"></span>
+          </p>
+          <p className="placeholder-wave">
+            <span className="placeholder col-12"></span>
+          </p>
+          <p className="placeholder-wave">
+            <span className="placeholder col-12"></span>
+          </p>
+          <p className="placeholder-wave">
+            <span className="placeholder col-12"></span>
+          </p>
+          <p className="placeholder-wave">
+            <span className="placeholder col-12"></span>
+          </p>
+        </div>
       </>
     );
   }
@@ -43,7 +68,6 @@ function Result({ summary }) {
   return (
     <>
       <h2>{locale.summaryHeader}</h2>
-
       <div className="">
         <p>{summary.summary}</p>
         <div className="d-flex flex-row">
