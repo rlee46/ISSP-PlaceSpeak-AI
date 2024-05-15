@@ -6,15 +6,14 @@ import { useState } from "react";
 function Analyzer() {
   const [summarizedData, setSummarizedData] = useState("");
 
-  const handleDataFromServer = (data) => {
-    setSummarizedData(data);
-  };
+  //Loading status
+  const [isLoading, setLoadingStatus] = useState(false);
 
   return (
     <>
       <div id="container">
-        <FileHandler onData={handleDataFromServer} />
-        <Result summary={summarizedData} />
+        <FileHandler onData={setSummarizedData} onLoading={setLoadingStatus} />
+        <Result summary={summarizedData} isLoading={isLoading} />
       </div>
     </>
   );
