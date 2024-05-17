@@ -19,7 +19,7 @@
     "location": "Location"
   },
   "confidenceChart": {
-    "label": "Frequency of Confidence Scores"
+    "title": "Frequency of Confidence Scores"
   },
   "sentimentChart": {
     "title": "Sentiment Analysis",

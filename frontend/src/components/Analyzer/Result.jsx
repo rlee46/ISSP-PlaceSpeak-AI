@@ -1,5 +1,5 @@
 import locale from "../../locale/en.json";
-import ConfidenceBarChart from "./ConfidenceBarChart";
+import BarChart from "./BarChart";
 import PieChart from "./PieChart";
 
 function Result({ summary, isLoading }) {
@@ -37,7 +37,21 @@ function Result({ summary, isLoading }) {
     );
   }
 
-  //Process sentiment data
+  //Confidence data
+  const confidenceLabels = [
+    "0-10%",
+    "11-20%",
+    "21-30%",
+    "31-40%",
+    "41-50%",
+    "51-60%",
+    "61-70%",
+    "71-80%",
+    "81-90%",
+    "91-100%",
+  ];
+
+  //Sentiment data
   const sentimentData = [
     summary.sentiment_frequencies.Negative,
     summary.sentiment_frequencies.Neutral,
@@ -49,7 +63,7 @@ function Result({ summary, isLoading }) {
     locale.sentimentChart.positive,
   ];
 
-  //Process location data
+  //Location data
   let locationLabels = [];
   let locationData = [];
   summary.entries.forEach((entry) => {
@@ -73,8 +87,10 @@ function Result({ summary, isLoading }) {
         <div className="d-flex flex-row">
           <div className="card">
             <div className="card-body">
-              <ConfidenceBarChart
-                confidenceData={summary.confidence_frequencies}
+              <BarChart
+                data={summary.confidence_frequencies}
+                labels={confidenceLabels}
+                datasetLabel={locale.confidenceChart.title}
               />
             </div>
           </div>
