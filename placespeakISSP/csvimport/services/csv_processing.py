@@ -237,7 +237,7 @@ class SurveyDataProcessor:
             raise ValueError("Fieldnames could not be extracted from CSV data.")
 
         # Determine columns to keep (from 8 to the second last column)
-        columns_to_keep = fieldnames[7:-1]
+        columns_to_keep = fieldnames[7:-2]
 
         # Initialize a dictionary to store the JSON object
         json_object = {col: [] for col in columns_to_keep}
@@ -251,34 +251,38 @@ class SurveyDataProcessor:
     def process_questions(self, questions):
         data = json.loads(questions)
         keys = data.keys()
+        result = {}
         
         for key in keys:
             cleaned_string = key.replace(u'\ufeff', '')
             value = data.get(key)
             cleaned_value = [v.replace(u'\ufeff', '') for v in value]
-            self.analyze_question(cleaned_string, cleaned_value)
+            analysis = self.analyze_question(cleaned_string, cleaned_value)
+            # print(type(analysis))
+            json_result = json.loads(analysis)
+            result.update(json_result)
+        # print(json.dumps(result, indent=2, ensure_ascii=False))
 
-
+            
     def analyze_question(self, key, value):
-        print("QUESTION TYPE: ", self.determine_question_type(value))
         prompt = ""
         q_type = self.determine_question_type(value)
         
-        # if q_type == "MCQ":
-        #     prompt = """ 
-        #     assist me in analyzing these questions. I need you to count the number of occurrences of yes and no as responses. return to me the question,
-        #     followed by the frequency of yes and no responses. The frequency must be as a proportion. For example the result for the question 'do you like cake?'.
-        #     would be {'Do you like cake?': '{'Yes': 50%, 'No':'50%'}}. Only return me the result object with no other explanations or text.
-        #     """
-        # elif q_type == "Scale":
-        #     prompt = """ 
-        #     assist me in alayzing these questions. The question is asking the user to rate something on a scale.
-        #     I need you to count the frequency of each number on the scale from 1 to the maximum number you find in
-        #     the responses. The frequency must be displayed as a proportion. For example, for the quesiton
-        #     'on a scale of 1-5 how happy are you?' The response would be {'on a scale of 1-5 how happy are you?': 
-        #     {'1': '10%', '2': '30%', '3': '20%', '4': '20', '5': '20%'}}. Only return me the result object with no other text or explanation.
-        #     """
-        if q_type == "Long Text":
+        if q_type == "MCQ":
+            prompt = """ 
+            assist me in analyzing these questions. I need you to count the number of occurrences of yes and no as responses. return to me the question,
+            followed by the frequency of yes and no responses. The frequency must be as a proportion. For example the result for the question 'do you like cake?'.
+            would be {'Do you like cake?': '{'Yes': 50%, 'No':'50%'}}. Only return me the result object with no other explanations, calculations or extra text.
+            """
+        elif q_type == "Scale":
+            prompt = """ 
+            assist me in alayzing these questions. The question is asking the user to rate something on a scale.
+            I need you to count the frequency of each number on the scale from 1 to the maximum number you find in
+            the responses. The frequency must be displayed as a proportion. For example, for the quesiton
+            'on a scale of 1-5 how happy are you?' The response would be {'on a scale of 1-5 how happy are you?': 
+            {'1': '10%', '2': '30%', '3': '20%', '4': '20', '5': '20%'}}. Only return me the result object with no other text or explanation.
+            """
+        elif q_type == "Long Text":
             prompt = """ 
             assist me in analyzing these questions. The question is asking the user for a long response. I need you
             to summarize the responses in 1 sentence maximum. For example for the question 'leave a comment on how you feel'
@@ -288,11 +292,13 @@ class SurveyDataProcessor:
             """
         query = "For the question: " + str(key) + prompt + str(value)
         try:
-            print(self.openai_client.generate_completion(query).json().get("choices")[0].get("message").get("content"))
+            analysis = self.openai_client.generate_completion(query).json().get("choices")[0].get("message").get("content")
+            
         except Exception as e:
             print(e)
-        
-        print("----------------------------------------")
+
+        return str(analysis)
+        # print("----------------------------------------")
 
     def determine_question_type(self,answers):
         mcq_count = 0
@@ -317,6 +323,3 @@ class SurveyDataProcessor:
             return "MCQ"
         else:
             return "Uncertain"
-        
-
-    
