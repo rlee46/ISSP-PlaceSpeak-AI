@@ -12,6 +12,8 @@ function FileHandler({ onData, onLoading }) {
 
   //Handle upload button click event
   const handleUpload = () => {
+    onData("");
+    setData("");
     const formData = new FormData();
     const fileInput = document.getElementById("file-upload");
     if (fileInput.files.length === 0) {
