@@ -304,8 +304,6 @@ class DiscussionDataProcessor:
         print("table_prompt done")
             
         return entries
-            
-        return entries
 
     def build_summary_prompt(self, data):
         return """
