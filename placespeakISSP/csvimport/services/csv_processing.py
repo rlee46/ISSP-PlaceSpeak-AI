@@ -4,6 +4,7 @@ import json
 import requests
 import math
 import time
+import csv
 from collections import defaultdict
 from rest_framework.response import Response
 from multiprocessing.pool import ThreadPool
@@ -45,7 +46,7 @@ class DataProcessorFactory:
         if data_type == "discussion":
             return DiscussionDataProcessor(self.openai_client, self.helper, self.test)
         elif data_type == "survey":
-            return DiscussionDataProcessor(self.openai_client, self.helper, self.test)
+            return SurveyDataProcessor(self.openai_client, self.helper, self.test)
         else:
             raise ValueError("Unsupported data type: {data_type}")
 
@@ -303,8 +304,6 @@ class DiscussionDataProcessor:
         print("table_prompt done")
             
         return entries
-            
-        return entries
 
     def build_summary_prompt(self, data):
         return """
@@ -313,3 +312,104 @@ class DiscussionDataProcessor:
         Provide a summary in 5-10 sentences and a 3-sentence recommendation.
         {data}
         """
+    
+#Survey Processing
+class SurveyDataProcessor:
+    def __init__(self, openai_client, helper, tester):
+        self.openai_client = openai_client
+        self.helper = helper
+        self.tester = tester
+
+    def separate_columns(self, csv_data):
+        csv_string = csv_data.encode('utf-8')
+        
+        csv_reader = csv.DictReader(csv_string.splitlines())
+        fieldnames = csv_reader.fieldnames
+        if fieldnames is None:
+            raise ValueError("Fieldnames could not be extracted from CSV data.")
+
+        # Determine columns to keep (from 8 to the second last column)
+        columns_to_keep = fieldnames[7:-2]
+
+        # Initialize a dictionary to store the JSON object
+        json_object = {col: [] for col in columns_to_keep}
+
+        # Process each row in the CSV
+        for row in csv_reader:
+            for col in columns_to_keep:
+                json_object[col].append(row[col])
+        return json.dumps(json_object, indent=2)
+    
+    def process_questions(self, questions):
+        data = json.loads(questions)
+        keys = data.keys()
+        result = {}
+
+        for key in keys:
+            cleaned_string = key.replace(u'\ufeff', '')
+            value = data.get(key)
+            cleaned_value = [v.replace(u'\ufeff', '') for v in value]
+            analysis = self.analyze_question(cleaned_string, cleaned_value)
+            json_result = json.loads(analysis)
+            result.update(json_result)
+        return result
+            
+    def analyze_question(self, key, value):
+        prompt = ""
+        q_type = self.determine_question_type(value)
+        
+        if q_type == "MCQ":
+            prompt = """ 
+            assist me in analyzing these questions. I need you to count the number of occurrences of yes and no as responses. return to me the question,
+            followed by the frequency of yes and no responses. The frequency must be as a proportion. For example the result for the question 'do you like cake?'.
+            would be {"Do you like cake?": "{"Yes": "50%", "No":"50%"}}. Only return me the result object with no other explanations, calculations or extra text.
+            """
+        elif q_type == "Scale":
+            prompt = """ 
+            assist me in alayzing these questions. The question is asking the user to rate something on a scale.
+            I need you to count the frequency of each number on the scale from 1 to the maximum number you find in
+            the responses. The frequency must be displayed as a proportion. For example, for the quesiton
+            'on a scale of 1-5 how happy are you?' The response would be {"on a scale of 1-5 how happy are you?": 
+            {"1": "10%", "2": "30%", "3": "20%", "4": "20", "5": "20%"}}. Only return me the result object with no other text or explanation.
+            """
+        elif q_type == "Long Text":
+            prompt = """ 
+            assist me in analyzing these questions. The question is asking the user for a long response. I need you
+            to summarize the responses in 1 sentence maximum. For example for the question 'leave a comment on how you feel'
+            the response would be: {"leave a comment on how you feel": ["I feel happy", "I feel angry"]}. The number
+            of summaries should equal the number of responses given. Ensure they match before returning the result. Only return me
+            the result object with no other explanation or text.
+            """
+        query = "For the question: " + str(key) + prompt + str(value)
+        try:
+            analysis = self.openai_client.generate_completion(query).json().get("choices")[0].get("message").get("content")
+            
+        except Exception as e:
+            print(e)
+
+        return str(analysis)
+        # print("----------------------------------------")
+
+    def determine_question_type(self,answers):
+        mcq_count = 0
+        long_text_count = 0
+        scale_count = 0
+        
+        for answer in answers:
+        # Check if the answer is a number
+            if answer.isdigit():
+                scale_count += 1
+            elif len(answer) > 10:
+                long_text_count += 1
+            else:
+                mcq_count += 1
+
+        # If all answers are numeric, return "Scale"
+        if scale_count == len(answers):
+            return "Scale"
+        elif long_text_count > 0:
+            return "Long Text"
+        elif mcq_count > 0:
+            return "MCQ"
+        else:
+            return "Uncertain"
