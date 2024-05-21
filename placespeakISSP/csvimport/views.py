@@ -93,9 +93,9 @@ class CSVSurveyAnalysisView(APIView):
 
         try:
             result = processor.separate_columns(csv_data)
-            print("COLUMNS SEPARATED")
-            processor.process_questions(result)
-            return Response(result, status=200)
+            survey_analysis = processor.process_questions(result)
+            print(survey_analysis)
+            return Response(survey_analysis, status=200)
         except Exception as e:
             logging.error("Error processing CSV data: {}".format(e))
             return Response({'Serror': str(e)}, status=500)
