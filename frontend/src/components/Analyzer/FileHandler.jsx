@@ -3,7 +3,7 @@ import locale from "../../locale/en.json";
 import { useState } from "react";
 import "bootstrap";
 
-function FileHandler({ onData }) {
+function FileHandler({ onData, onLoading }) {
   //For server response data
   const [data, setData] = useState("");
 
@@ -39,6 +39,7 @@ function FileHandler({ onData }) {
 
   //Upload discussion CSV data to server
   const discussionAnalysis = (text) => {
+    onLoading(true);
     const url = "http://localhost:8080/discussion/";
     const params = new URLSearchParams();
     params.append("_content", JSON.stringify({ csv_data: text }));
@@ -52,6 +53,7 @@ function FileHandler({ onData }) {
     })
       .then((response) => response.json())
       .then((data) => {
+        onLoading(false);
         onData(data);
         setData(data);
       })
