@@ -12,6 +12,8 @@ function FileHandler({ onData, onLoading }) {
 
   //Handle upload button click event
   const handleUpload = () => {
+    onData("");
+    setData("");
     const formData = new FormData();
     const fileInput = document.getElementById("file-upload");
     if (fileInput.files.length === 0) {
@@ -35,7 +37,24 @@ function FileHandler({ onData, onLoading }) {
   };
 
   //Upload survey CSV data to server
-  const surveyAnalysis = (text) => {};
+  const surveyAnalysis = (text) => {
+    const url = "http://localhost:8080/survey/";
+    const params = new URLSearchParams();
+    params.append("_content", JSON.stringify({ csv_data: text }));
+
+    fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: params,
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        console.log(data);
+      })
+      .catch((error) => console.error("Error:", error));
+  };
 
   //Upload discussion CSV data to server
   const discussionAnalysis = (text) => {
@@ -54,6 +73,7 @@ function FileHandler({ onData, onLoading }) {
       .then((response) => response.json())
       .then((data) => {
         onLoading(false);
+        console.log(data);
         onData(data);
         setData(data);
       })

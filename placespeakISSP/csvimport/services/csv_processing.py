@@ -4,10 +4,10 @@ import json
 import requests
 import math
 import time
+import csv
 from collections import defaultdict
 from rest_framework.response import Response
-
-import threading
+from multiprocessing.pool import ThreadPool
 
 from ..utilities.helpers import HelperFunctions
 from ..tests.test_functions import TestFunctions
@@ -46,7 +46,7 @@ class DataProcessorFactory:
         if data_type == "discussion":
             return DiscussionDataProcessor(self.openai_client, self.helper, self.test)
         elif data_type == "survey":
-            return DiscussionDataProcessor(self.openai_client, self.helper, self.test)
+            return SurveyDataProcessor(self.openai_client, self.helper, self.test)
         else:
             raise ValueError("Unsupported data type: {data_type}")
 
@@ -153,10 +153,106 @@ class DiscussionDataProcessor:
 
         return [score_bins[bin] for bin in bins]
     
+
+
+#     def prompt(self, query_type, data):
+    
+#         # Prepare data to send to the OpenAI API
+#         if query_type == 'summary':
+#             query = '''
+#             I am a government  official who is looking to make a decision based on the input of my community. 
+#             The following data is sourced from a discussion post where members of my community discussed their views on the topic.
+#             Please generate a 5 to 10 sentence summary that I can use to communicate their feelings to my colleagues and other policy makers.
+#             In three sentences or less, please provide a recommendation for how I should proceed based on the feedback observed in this post.   
+#             Do not format it in markdown, only use plain text.
+#             ''' + data
+        
+#             return self.openai_client.generate_completion(query)
+#         elif query_type == 'table':
+#             start_time = time.time()
+#             count = 0
+#             batch_number = 0
+#             token_limit = 3000
+#             data_array = self.helper.csv_to_array(data)
+#             print("array made")
+#             batch_size = 5
+#             results = []
+#             current_batch = []
+#             num_rows = len(data_array)
+#             num_batches = math.ceil(num_rows / batch_size)
+#             print("number of batches: " + str(num_batches))
+        
+#             results = []
+
+#             for row in data_array:
+#         # Calculate the number of tokens in the current row
+#                 row_tokens = self.helper.num_tokens(str(row))
+#         # Check if adding this row exceeds the token limit
+#                 if count + row_tokens <= token_limit:
+#                     current_batch.append(row)
+#                     count += row_tokens
+#                 else:
+#             # Process the current batch
+#                     print("--------------------------------------------------------")
+#                     print("Batch Number: " + str(batch_number))
+#                     batch_number += 1
+#                     print("Num Tokens: " + str(count))
+#                     print("Num of input rows: " + str(len(current_batch)))
+#                     batch_result = self.process_batch(current_batch)
+#                     print("--------------------------------------------------------")
+#                     results.append(batch_result)
+        
+#         # Reset count and current batch
+#                     count = row_tokens
+#                     current_batch = [row]
+
+# # Process the remaining batch if any
+#             if current_batch:
+#                 print("--------------------------------------------------------")
+#                 print("Batch Number: " + str(batch_number))
+#                 batch_number += 1
+#                 print("Num Tokens: " + str(count))
+#                 print("Num of input rows: " + str(len(current_batch)))
+#                 batch_result = self.process_batch(current_batch)
+#                 print("--------------------------------------------------------")
+#                 results.append(batch_result)
+
+#         end_time = time.time()  # End timing
+#         print("Total processing time: {:.2f} seconds".format(end_time - start_time))
+#         return results
+    
     def prompt(self, query_type, data):
-        start_time = time.time()
-        # Prepare data to send to the OpenAI API
-        if query_type == 'summary':
+        if query_type == 'table':
+            start_time = time.time()
+            data_array = self.helper.csv_to_array(data)
+            token_limit = 3000
+            current_batch = []
+            count = 0
+            batches = []
+            
+            # Organize data into batches considering the token limit
+            for row in data_array:
+                row_tokens = self.helper.num_tokens(str(row))
+                if count + row_tokens <= token_limit:
+                    current_batch.append(row)
+                    count += row_tokens
+                else:
+                    batches.append(current_batch)
+                    current_batch = [row]
+                    count = row_tokens
+            if current_batch:
+                batches.append(current_batch)
+            
+            results = []
+            # Use ThreadPool to process batches concurrently
+            pool = ThreadPool(processes=5)
+            results = pool.map(self.process_batch, batches)
+            pool.close()
+            pool.join()
+            end_time = time.time()  # End timing
+            print("Total processing time: {:.2f} seconds".format(end_time - start_time))
+            return results
+        elif query_type == 'summary':
             query = '''
             I am a government  official who is looking to make a decision based on the input of my community. 
             The following data is sourced from a discussion post where members of my community discussed their views on the topic.
@@ -166,39 +262,6 @@ class DiscussionDataProcessor:
             ''' + data
         
             return self.openai_client.generate_completion(query)
-        elif query_type == 'table':
-            data_array = self.helper.csv_to_array(data)
-            num_rows = len(data_array)
-            batch_size = 5
-            num_batches = math.ceil(num_rows / float(batch_size))
-            print("number of batches: " + str(num_batches))
-        
-            results = {}  # Use a dictionary to store results
-            threads = []
-        
-            def handle_batch(batch_index, start_idx, end_idx):
-                batch_data = data_array[start_idx:end_idx]
-                if batch_data:
-                    batch_result = self.process_batch(batch_data)
-                    results[batch_index] = batch_result  # Store each batch result with its index
-        
-            for i in range(int(num_batches+1)):
-                start_idx = i * batch_size
-                end_idx = min((i + 1) * batch_size, num_rows)
-                thread = threading.Thread(target=handle_batch, args=(i, start_idx, end_idx))
-                threads.append(thread)
-                thread.start()
-        
-            # Wait for all threads to complete
-            for thread in threads:
-                thread.join()
-
-            end_time = time.time()  # End timing
-            print("Total processing time: {:.2f} seconds".format(end_time - start_time))
-
-            # Convert the dictionary back to a sorted list of results
-            sorted_results = [results[i] for i in sorted(results.keys())]
-            return sorted_results  # Return the results as a sorted array of arrays
 
     def summary_prompt(self, csv_data):
         response = self.prompt('summary', csv_data)
@@ -249,3 +312,104 @@ class DiscussionDataProcessor:
         Provide a summary in 5-10 sentences and a 3-sentence recommendation.
         {data}
         """
+    
+#Survey Processing
+class SurveyDataProcessor:
+    def __init__(self, openai_client, helper, tester):
+        self.openai_client = openai_client
+        self.helper = helper
+        self.tester = tester
+
+    def separate_columns(self, csv_data):
+        csv_string = csv_data.encode('utf-8')
+        
+        csv_reader = csv.DictReader(csv_string.splitlines())
+        fieldnames = csv_reader.fieldnames
+        if fieldnames is None:
+            raise ValueError("Fieldnames could not be extracted from CSV data.")
+
+        # Determine columns to keep (from 8 to the second last column)
+        columns_to_keep = fieldnames[7:-2]
+
+        # Initialize a dictionary to store the JSON object
+        json_object = {col: [] for col in columns_to_keep}
+
+        # Process each row in the CSV
+        for row in csv_reader:
+            for col in columns_to_keep:
+                json_object[col].append(row[col])
+        return json.dumps(json_object, indent=2)
+    
+    def process_questions(self, questions):
+        data = json.loads(questions)
+        keys = data.keys()
+        result = {}
+
+        for key in keys:
+            cleaned_string = key.replace(u'\ufeff', '')
+            value = data.get(key)
+            cleaned_value = [v.replace(u'\ufeff', '') for v in value]
+            analysis = self.analyze_question(cleaned_string, cleaned_value)
+            json_result = json.loads(analysis)
+            result.update(json_result)
+        return result
+            
+    def analyze_question(self, key, value):
+        prompt = ""
+        q_type = self.determine_question_type(value)
+        
+        if q_type == "MCQ":
+            prompt = """ 
+            assist me in analyzing these questions. I need you to count the number of occurrences of yes and no as responses. return to me the question,
+            followed by the frequency of yes and no responses. The frequency must be as a proportion. For example the result for the question 'do you like cake?'.
+            would be {"Do you like cake?": "{"Yes": "50%", "No":"50%"}}. Only return me the result object with no other explanations, calculations or extra text.
+            """
+        elif q_type == "Scale":
+            prompt = """ 
+            assist me in alayzing these questions. The question is asking the user to rate something on a scale.
+            I need you to count the frequency of each number on the scale from 1 to the maximum number you find in
+            the responses. The frequency must be displayed as a proportion. For example, for the quesiton
+            'on a scale of 1-5 how happy are you?' The response would be {"on a scale of 1-5 how happy are you?": 
+            {"1": "10%", "2": "30%", "3": "20%", "4": "20", "5": "20%"}}. Only return me the result object with no other text or explanation.
+            """
+        elif q_type == "Long Text":
+            prompt = """ 
+            assist me in analyzing these questions. The question is asking the user for a long response. I need you
+            to summarize the responses in 1 sentence maximum. For example for the question 'leave a comment on how you feel'
+            the response would be: {"leave a comment on how you feel": ["I feel happy", "I feel angry"]}. The number
+            of summaries should equal the number of responses given. Ensure they match before returning the result. Only return me
+            the result object with no other explanation or text.
+            """
+        query = "For the question: " + str(key) + prompt + str(value)
+        try:
+            analysis = self.openai_client.generate_completion(query).json().get("choices")[0].get("message").get("content")
+            
+        except Exception as e:
+            print(e)
+
+        return str(analysis)
+        # print("----------------------------------------")
+
+    def determine_question_type(self,answers):
+        mcq_count = 0
+        long_text_count = 0
+        scale_count = 0
+        
+        for answer in answers:
+        # Check if the answer is a number
+            if answer.isdigit():
+                scale_count += 1
+            elif len(answer) > 10:
+                long_text_count += 1
+            else:
+                mcq_count += 1
+
+        # If all answers are numeric, return "Scale"
+        if scale_count == len(answers):
+            return "Scale"
+        elif long_text_count > 0:
+            return "Long Text"
+        elif mcq_count > 0:
+            return "MCQ"
+        else:
+            return "Uncertain"
