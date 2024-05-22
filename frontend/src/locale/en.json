@@ -11,6 +11,7 @@
   "discussion": "Discussion",
   "error": "Internal Error!",
   "survey": "Survey",
+  "fileTypeError": "Please select correct file type!",
   "table": {
     "keyPhrase": "Key Phrase",
     "sentiment": "Sentiment",
@@ -19,12 +20,15 @@
     "location": "Location"
   },
   "confidenceChart": {
-    "label": "Frequency of Confidence Scores"
+    "title": "Frequency of Confidence Scores"
   },
   "sentimentChart": {
     "title": "Sentiment Analysis",
     "neutral": "Neutral",
     "positive": "Positive",
     "negative": "Negative"
+  },
+  "chartLabels": {
+    "comments": "Comments"
   }
 }

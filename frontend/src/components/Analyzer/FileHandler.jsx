@@ -3,12 +3,9 @@ import locale from "../../locale/en.json";
 import { useState } from "react";
 import "bootstrap";
 
-function FileHandler({ onData, onLoading }) {
+function FileHandler({ onData, onLoading, fileType, onFileType }) {
   //For server response data
   const [data, setData] = useState("");
-
-  //Two types: 'discussion' & 'survey'
-  const [fileType, setFileType] = useState("discussion");
 
   //Handle upload button click event
   const handleUpload = () => {
@@ -36,8 +33,43 @@ function FileHandler({ onData, onLoading }) {
     reader.readAsText(fileInput.files[0]);
   };
 
+  const checkQuestionType = (response) => {
+    const ret = [];
+    Object.entries(response).forEach(([question, response]) => {
+      if (typeof response === "object" && !Array.isArray(response)) {
+        if (response.hasOwnProperty("Yes") && response.hasOwnProperty("No")) {
+          //Yes or no questions
+          const item = {
+            type: "yesNo",
+            question: question,
+            response: response,
+          };
+          ret.push(item);
+        } else {
+          //Multiple choice questions
+          const item = {
+            type: "multipleChoice",
+            question: question,
+            response: response,
+          };
+          ret.push(item);
+        }
+      } else {
+        //Long answer comment questions
+        const item = {
+          type: "comment",
+          question: question,
+          response: response,
+        };
+        ret.push(item);
+      }
+    });
+    return ret;
+  };
+
   //Upload survey CSV data to server
   const surveyAnalysis = (text) => {
+    onLoading(true);
     const url = "http://localhost:8080/survey/";
     const params = new URLSearchParams();
     params.append("_content", JSON.stringify({ csv_data: text }));
@@ -51,7 +83,10 @@ function FileHandler({ onData, onLoading }) {
     })
       .then((response) => response.json())
       .then((data) => {
-        console.log(data);
+        const res = checkQuestionType(data);
+        onLoading(false);
+        onData(res);
+        setData(res);
       })
       .catch((error) => console.error("Error:", error));
   };
@@ -73,11 +108,13 @@ function FileHandler({ onData, onLoading }) {
       .then((response) => response.json())
       .then((data) => {
         onLoading(false);
-        console.log(data);
         onData(data);
         setData(data);
       })
-      .catch((error) => console.error("Error:", error));
+      .catch((error) => {
+        console.error("Error:", error);
+        alert(locale.fileTypeError);
+      });
   };
 
   //Convert the table to CSV
@@ -103,19 +140,21 @@ function FileHandler({ onData, onLoading }) {
 
   //Download CSV
   const downloadCSV = () => {
-    const fileName = "report.csv";
-    const dataToDownload = toCSV();
-    const blob = new Blob([dataToDownload], {
-      type: "text/csv;charset=utf-8;",
-    });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", fileName);
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    if (fileType === "discussion") {
+      const fileName = "report.csv";
+      const dataToDownload = toCSV();
+      const blob = new Blob([dataToDownload], {
+        type: "text/csv;charset=utf-8;",
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", fileName);
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   };
 
   return (
@@ -151,7 +190,10 @@ function FileHandler({ onData, onLoading }) {
               <li>
                 <a
                   className="dropdown-item"
-                  onClick={() => setFileType("discussion")}
+                  onClick={() => {
+                    onFileType("discussion");
+                    onData("");
+                  }}
                   href="#"
                 >
                   {locale.discussion}
@@ -160,7 +202,10 @@ function FileHandler({ onData, onLoading }) {
               <li>
                 <a
                   className="dropdown-item"
-                  onClick={() => setFileType("survey")}
+                  onClick={() => {
+                    onFileType("survey");
+                    onData("");
+                  }}
                   href="#"
                 >
                   {locale.survey}
