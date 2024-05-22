@@ -304,6 +304,7 @@ class DiscussionDataProcessor:
         print("table_prompt done")
             
         return entries
+            
 
     def build_summary_prompt(self, data):
         return """
@@ -314,12 +315,21 @@ class DiscussionDataProcessor:
         """
     
 #Survey Processing
+#this class is used to process survey CSV files
+#currently analyzes Binary/MCQ, Scale, and Text questions
 class SurveyDataProcessor:
     def __init__(self, openai_client, helper, tester):
         self.openai_client = openai_client
         self.helper = helper
         self.tester = tester
 
+    #Separate the questions in the CSV to analyze separately
+    #NOTE columns_to_keep are the columns for questions.
+    #Column 7 is the first question, '-2' means up to the second last column
+    # Args:
+    #   csv_data: dict containing all the csv data for the survey
+    # Return:
+    #   json string of the questions
     def separate_columns(self, csv_data):
         csv_string = csv_data.encode('utf-8')
         
@@ -328,8 +338,10 @@ class SurveyDataProcessor:
         if fieldnames is None:
             raise ValueError("Fieldnames could not be extracted from CSV data.")
 
+        first_question_column = 7
+        last_question_column = -2
         # Determine columns to keep (from 8 to the second last column)
-        columns_to_keep = fieldnames[7:-2]
+        columns_to_keep = fieldnames[first_question_column:last_question_column]
 
         # Initialize a dictionary to store the JSON object
         json_object = {col: [] for col in columns_to_keep}
@@ -340,6 +352,11 @@ class SurveyDataProcessor:
                 json_object[col].append(row[col])
         return json.dumps(json_object, indent=2)
     
+    # Process questions and combine results
+    # Args:
+    #   questions: json string of questions
+    # Return:
+    #   json string of the questions and analysis
     def process_questions(self, questions):
         data = json.loads(questions)
         keys = data.keys()
@@ -350,10 +367,17 @@ class SurveyDataProcessor:
             value = data.get(key)
             cleaned_value = [v.replace(u'\ufeff', '') for v in value]
             analysis = self.analyze_question(cleaned_string, cleaned_value)
+            print(analysis)
             json_result = json.loads(analysis)
             result.update(json_result)
         return result
-            
+
+    # Analyze the question using chatGPT
+    # Args:
+    #   key: question
+    #   value: responses 
+    # Return:
+    #   json string of the questions and analysis      
     def analyze_question(self, key, value):
         prompt = ""
         q_type = self.determine_question_type(value)
@@ -362,7 +386,7 @@ class SurveyDataProcessor:
             prompt = """ 
             assist me in analyzing these questions. I need you to count the number of occurrences of yes and no as responses. return to me the question,
             followed by the frequency of yes and no responses. The frequency must be as a proportion. For example the result for the question 'do you like cake?'.
-            would be {"Do you like cake?": "{"Yes": "50%", "No":"50%"}}. Only return me the result object with no other explanations, calculations or extra text.
+            would be {"What time of day are you affected by this? [Evening]": "{"Yes": "50%", "No":"50%"}}. Only return me the result object with no other explanations, calculations or extra text.
             """
         elif q_type == "Scale":
             prompt = """ 
@@ -370,7 +394,9 @@ class SurveyDataProcessor:
             I need you to count the frequency of each number on the scale from 1 to the maximum number you find in
             the responses. The frequency must be displayed as a proportion. For example, for the quesiton
             'on a scale of 1-5 how happy are you?' The response would be {"on a scale of 1-5 how happy are you?": 
-            {"1": "10%", "2": "30%", "3": "20%", "4": "20", "5": "20%"}}. Only return me the result object with no other text or explanation.
+            {"1": "10%", "2": "30%", "3": "20%", "4": "0%", "5": "20%"}}. Ensure all numbers from lower to upper bound are returned.
+            For example in the question provided the scale is from 1-5. You should return a proportion for all numbers from 1-5
+            even if they are "0%". Only return me the result object with no other text or explanation.
             """
         elif q_type == "Long Text":
             prompt = """ 
@@ -388,8 +414,12 @@ class SurveyDataProcessor:
             print(e)
 
         return str(analysis)
-        # print("----------------------------------------")
 
+    # Determine the type of question being analyzed
+    # Args:
+    #   answers: responses that determine the question type
+    # Return:
+    #   string Scale, Long Text, MCQ or Uncertain 
     def determine_question_type(self,answers):
         mcq_count = 0
         long_text_count = 0
