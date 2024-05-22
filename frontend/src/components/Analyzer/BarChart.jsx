@@ -65,7 +65,7 @@ function BarChart({ labels, datasetLabel, data, backgroundColor }) {
     responsive: true,
     plugins: {
       legend: {
-        position: "top",
+        display: false,
       },
       title: {
         display: true,
