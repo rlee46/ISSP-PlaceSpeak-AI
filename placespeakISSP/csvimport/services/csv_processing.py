@@ -394,7 +394,9 @@ class SurveyDataProcessor:
             I need you to count the frequency of each number on the scale from 1 to the maximum number you find in
             the responses. The frequency must be displayed as a proportion. For example, for the quesiton
             'on a scale of 1-5 how happy are you?' The response would be {"on a scale of 1-5 how happy are you?": 
-            {"1": "10%", "2": "30%", "3": "20%", "4": "20", "5": "20%"}}. Only return me the result object with no other text or explanation.
+            {"1": "10%", "2": "30%", "3": "20%", "4": "0%", "5": "20%"}}. Ensure all numbers from lower to upper bound are returned.
+            For example in the question provided the scale is from 1-5. You should return a proportion for all numbers from 1-5
+            even if they are "0%". Only return me the result object with no other text or explanation.
             """
         elif q_type == "Long Text":
             prompt = """ 
@@ -412,7 +414,6 @@ class SurveyDataProcessor:
             print(e)
 
         return str(analysis)
-        # print("----------------------------------------")
 
     # Determine the type of question being analyzed
     # Args:
