@@ -357,12 +357,13 @@ class SurveyDataProcessor:
     def analyze_question(self, key, value):
         prompt = ""
         q_type = self.determine_question_type(value)
-        
+        batch_size = 5
         if q_type == "MCQ":
             prompt = """ 
             assist me in analyzing these questions. I need you to count the number of occurrences of yes and no as responses. return to me the question,
             followed by the frequency of yes and no responses. The frequency must be as a proportion. For example the result for the question 'do you like cake?'.
-            would be {"Do you like cake?": "{"Yes": "50%", "No":"50%"}}. Only return me the result object with no other explanations, calculations or extra text.
+            would be {"Do you like cake?": "{"Yes": "5", "No":"5"}}. Only return me the result object with no other explanations, calculations or extra text.
+            NOTE: DO NOT GIVE ME PROPORTION
             """
         elif q_type == "Scale":
             prompt = """ 
@@ -370,7 +371,8 @@ class SurveyDataProcessor:
             I need you to count the frequency of each number on the scale from 1 to the maximum number you find in
             the responses. The frequency must be displayed as a proportion. For example, for the quesiton
             'on a scale of 1-5 how happy are you?' The response would be {"on a scale of 1-5 how happy are you?": 
-            {"1": "10%", "2": "30%", "3": "20%", "4": "20", "5": "20%"}}. Only return me the result object with no other text or explanation.
+            {"1": "1", "2": "3", "3": "2", "4": "2", "5": "2"}}. Only return me the result object with no other text or explanation.
+            NOTE: DO NOT GIVE ME PROPORTION
             """
         elif q_type == "Long Text":
             prompt = """ 
@@ -379,15 +381,45 @@ class SurveyDataProcessor:
             the response would be: {"leave a comment on how you feel": ["I feel happy", "I feel angry"]}. The number
             of summaries should equal the number of responses given. Ensure they match before returning the result. Only return me
             the result object with no other explanation or text.
+            NOTE: DO NOT GIVE ME PROPORTION
             """
-        query = "For the question: " + str(key) + prompt + str(value)
-        try:
-            analysis = self.openai_client.generate_completion(query).json().get("choices")[0].get("message").get("content")
-            
-        except Exception as e:
-            print(e)
+        print("creating batches")
+        results = {}
+        num_batches = int(math.ceil(len(value) / float(batch_size)))
+        print(value)
+        for i in range(num_batches):
+            start_index = i * batch_size
+            end_index = start_index + batch_size
+            try:
+                batch_value = value[start_index:end_index]
+            except Exception as e:
+                print(e)
+            print("batch created")
+            query = "For the question: " + str(key) + prompt + str(batch_value)
+            try:
+                analysis = self.openai_client.generate_completion(query).json().get("choices")[0].get("message").get("content")
+                batch_result = json.loads(analysis)
 
-        return str(analysis)
+                for k, v in batch_result.items():
+                    if k in results:
+                        if q_type in ["MCQ", "Scale"]:
+                            for sub_k, sub_v in v.items():
+                                sub_v_int = int(sub_v)
+                                if sub_k in results[k]:
+                                    results[k][sub_k] += sub_v_int
+                                else:
+                                    results[k][sub_k] = sub_v_int
+                        elif q_type == "Long Text":
+                            results[k].extend(v)
+                    else:
+                        if q_type in ["MCQ", "Scale"]:
+                            results[k] = {sub_k: int(sub_v) for sub_k, sub_v in v.items()}
+                        elif q_type == "Long Text":
+                            results[k] = v
+            except Exception as e:
+                print("Error during analysis:", e)
+
+        return json.dumps(results)
         # print("----------------------------------------")
 
     def determine_question_type(self,answers):
