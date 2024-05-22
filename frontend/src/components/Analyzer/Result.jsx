@@ -139,16 +139,11 @@ function Result({ summary, isLoading, fileType }) {
   const dynamicResult = (data) => {
     if (data.type === "yesNo") {
       const labels = ["Yes", "No"];
-      const values = [
-        parseInt(data.response.Yes.replace("%", ""), 10),
-        parseInt(data.response.No.replace("%", ""), 10),
-      ];
+      const values = [data.response.Yes, data.response.No];
       return <PieChart data={values} labels={labels} />;
     } else if (data.type === "multipleChoice") {
       const labels = Object.keys(data.response);
-      const values = Object.values(data.response).map((value) =>
-        parseInt(value.replace("%", ""), 10)
-      );
+      const values = Object.values(data.response).map((value) => value);
       return <BarChart data={values} labels={labels} />;
     } else if (data.type === "comment") {
       return (
