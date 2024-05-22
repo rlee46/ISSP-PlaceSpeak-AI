@@ -83,7 +83,6 @@ function FileHandler({ onData, onLoading, fileType, onFileType }) {
     })
       .then((response) => response.json())
       .then((data) => {
-        console.log(JSON.stringify(data));
         const res = checkQuestionType(data);
         onLoading(false);
         onData(res);
