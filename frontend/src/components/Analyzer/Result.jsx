@@ -183,7 +183,9 @@ function Result({ summary, isLoading, fileType }) {
             return (
               <div className="card" key={index}>
                 <div className="card-body">
-                  <p>{entry.question}</p>
+                  <p>
+                    <b>{entry.question}</b>
+                  </p>
                   {dynamicResult(entry)}
                 </div>
               </div>
