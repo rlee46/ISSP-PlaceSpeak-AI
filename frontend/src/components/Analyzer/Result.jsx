@@ -26,12 +26,6 @@ function Result({ summary, isLoading, fileType }) {
           <p className="placeholder-wave">
             <span className="placeholder col-12"></span>
           </p>
-          <p className="placeholder-wave">
-            <span className="placeholder col-12"></span>
-          </p>
-          <p className="placeholder-wave">
-            <span className="placeholder col-12"></span>
-          </p>
         </div>
       </>
     );
