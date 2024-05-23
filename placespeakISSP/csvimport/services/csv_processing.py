@@ -387,13 +387,16 @@ class SurveyDataProcessor:
         results = {}
         num_batches = int(math.ceil(len(value) / float(batch_size)))
         print(value)
+        key = key[3:]
         for i in range(num_batches):
             start_index = i * batch_size
             end_index = start_index + batch_size
             try:
                 batch_value = value[start_index:end_index]
             except Exception as e:
-                print(e)
+                print("Error occurred while creating batch:", e)
+                continue  # Skip this batch and proceed with the next one
+
             print("batch created")
             query = "For the question: " + str(key) + prompt + str(batch_value)
             try:
@@ -401,25 +404,33 @@ class SurveyDataProcessor:
                 batch_result = json.loads(analysis)
 
                 for k, v in batch_result.items():
-                    if k in results:
-                        if q_type in ["MCQ", "Scale"]:
-                            for sub_k, sub_v in v.items():
-                                sub_v_int = int(sub_v)
-                                if sub_k in results[k]:
-                                    results[k][sub_k] += sub_v_int
-                                else:
-                                    results[k][sub_k] = sub_v_int
-                        elif q_type == "Long Text":
-                            results[k].extend(v)
-                    else:
-                        if q_type in ["MCQ", "Scale"]:
-                            results[k] = {sub_k: int(sub_v) for sub_k, sub_v in v.items()}
-                        elif q_type == "Long Text":
-                            results[k] = v
+                    try:
+                        # Attempt to access the results dictionary with the key
+                        if key in results:
+                            if q_type in ["MCQ", "Scale"]:
+                                for sub_k, sub_v in v.items():
+                                    print(v, sub_k, sub_v)
+                                    sub_v_int = int(sub_v)
+                                    if sub_k in results[key]:
+                                        results[key][sub_k] += sub_v_int
+                                    else:
+                                        results[key][sub_k] = sub_v_int
+                            elif q_type == "Long Text":
+                                results[key].extend(v)
+                        else:
+                            if q_type in ["MCQ", "Scale"]:
+                                results[key] = {sub_k: int(sub_v) for sub_k, sub_v in v.items()}
+                            elif q_type == "Long Text":
+                                results[key] = v
+                    except KeyError as e:
+                        print("KeyError occurred while accessing results:", e)
+                        continue  # Skip this key and proceed with the next one
             except Exception as e:
                 print("Error during analysis:", e)
+                continue  # Skip this batch and proceed with the next one
 
         return json.dumps(results)
+
         # print("----------------------------------------")
 
     def determine_question_type(self,answers):
