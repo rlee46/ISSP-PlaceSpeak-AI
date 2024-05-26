@@ -385,7 +385,7 @@ class SurveyDataProcessor:
         if q_type == "MCQ":
             prompt = """ 
             assist me in analyzing these questions. I need you to count the number of occurrences of yes and no as responses. return to me the question,
-            followed by the frequency of yes and no responses. The frequency must be as a proportion. For example the result for the question 'do you like cake?'.
+            followed by the frequency of yes and no responses. The frequency must be as a proportion. For example the result for the question 'What time of day are you affected by this? [Evening]'.
             would be {"What time of day are you affected by this? [Evening]": "{"Yes": "5", "No":"5"}}. Only return me the result object with no other explanations, calculations or extra text.
             """
         elif q_type == "Scale":
@@ -396,7 +396,7 @@ class SurveyDataProcessor:
             'on a scale of 1-5 how happy are you?' The response would be {"on a scale of 1-5 how happy are you?": 
             {"1": "10", "2": "30", "3": "20", "4": "0", "5": "20"}}. Ensure all numbers from lower to upper bound are returned.
             For example in the question provided the scale is from 1-5. You should return a proportion for all numbers from 1-5
-            even if they are "0%". Only return me the result object with no other text or explanation.
+            even if they are "0". Only return me the result object with no other text or explanation.
             """
         elif q_type == "Long Text":
             prompt = """ 
@@ -409,7 +409,7 @@ class SurveyDataProcessor:
             """
         print("creating batches")
         results = {}
-        num_batches = int(math.ceil(len(value) / float(batch_size)))
+        num_batches = int(math.ceil(len(value) / batch_size) + 1)
         print(value)
         key = key[3:]
         for i in range(num_batches):
