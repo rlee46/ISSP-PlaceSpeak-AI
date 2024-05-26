@@ -381,12 +381,12 @@ class SurveyDataProcessor:
     def analyze_question(self, key, value):
         prompt = ""
         q_type = self.determine_question_type(value)
-        
+        batch_size = 5
         if q_type == "MCQ":
             prompt = """ 
             assist me in analyzing these questions. I need you to count the number of occurrences of yes and no as responses. return to me the question,
-            followed by the frequency of yes and no responses. The frequency must be as a proportion. For example the result for the question 'do you like cake?'.
-            would be {"What time of day are you affected by this? [Evening]": "{"Yes": "50%", "No":"50%"}}. Only return me the result object with no other explanations, calculations or extra text.
+            followed by the frequency of yes and no responses. The frequency must be as a proportion. For example the result for the question 'What time of day are you affected by this? [Evening]'.
+            would be {"What time of day are you affected by this? [Evening]": "{"Yes": "5", "No":"5"}}. Only return me the result object with no other explanations, calculations or extra text.
             """
         elif q_type == "Scale":
             prompt = """ 
@@ -394,9 +394,9 @@ class SurveyDataProcessor:
             I need you to count the frequency of each number on the scale from 1 to the maximum number you find in
             the responses. The frequency must be displayed as a proportion. For example, for the quesiton
             'on a scale of 1-5 how happy are you?' The response would be {"on a scale of 1-5 how happy are you?": 
-            {"1": "10%", "2": "30%", "3": "20%", "4": "0%", "5": "20%"}}. Ensure all numbers from lower to upper bound are returned.
+            {"1": "10", "2": "30", "3": "20", "4": "0", "5": "20"}}. Ensure all numbers from lower to upper bound are returned.
             For example in the question provided the scale is from 1-5. You should return a proportion for all numbers from 1-5
-            even if they are "0%". Only return me the result object with no other text or explanation.
+            even if they are "0". Only return me the result object with no other text or explanation.
             """
         elif q_type == "Long Text":
             prompt = """ 
@@ -405,13 +405,55 @@ class SurveyDataProcessor:
             the response would be: {"leave a comment on how you feel": ["I feel happy", "I feel angry"]}. The number
             of summaries should equal the number of responses given. Ensure they match before returning the result. Only return me
             the result object with no other explanation or text.
+            NOTE: DO NOT GIVE ME PROPORTION
             """
-        query = "For the question: " + str(key) + prompt + str(value)
-        try:
-            analysis = self.openai_client.generate_completion(query).json().get("choices")[0].get("message").get("content")
-            
-        except Exception as e:
-            print(e)
+        print("creating batches")
+        results = {}
+        num_batches = int(math.ceil(len(value) / batch_size) + 1)
+        print(value)
+        key = key[3:]
+        for i in range(num_batches):
+            start_index = i * batch_size
+            end_index = start_index + batch_size
+            try:
+                batch_value = value[start_index:end_index]
+            except Exception as e:
+                print("Error occurred while creating batch:", e)
+                continue  # Skip this batch and proceed with the next one
+
+            print("batch created")
+            query = "For the question: " + str(key) + prompt + str(batch_value)
+            try:
+                analysis = self.openai_client.generate_completion(query).json().get("choices")[0].get("message").get("content")
+                batch_result = json.loads(analysis)
+
+                for k, v in batch_result.items():
+                    try:
+                        # Attempt to access the results dictionary with the key
+                        if key in results:
+                            if q_type in ["MCQ", "Scale"]:
+                                for sub_k, sub_v in v.items():
+                                    print(v, sub_k, sub_v)
+                                    sub_v_int = int(sub_v)
+                                    if sub_k in results[key]:
+                                        results[key][sub_k] += sub_v_int
+                                    else:
+                                        results[key][sub_k] = sub_v_int
+                            elif q_type == "Long Text":
+                                results[key].extend(v)
+                        else:
+                            if q_type in ["MCQ", "Scale"]:
+                                results[key] = {sub_k: int(sub_v) for sub_k, sub_v in v.items()}
+                            elif q_type == "Long Text":
+                                results[key] = v
+                    except KeyError as e:
+                        print("KeyError occurred while accessing results:", e)
+                        continue  # Skip this key and proceed with the next one
+            except Exception as e:
+                print("Error during analysis:", e)
+                continue  # Skip this batch and proceed with the next one
+
+        return json.dumps(results)
 
         return str(analysis)
 
